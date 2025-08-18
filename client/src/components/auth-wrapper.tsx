@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "wouter";
 import { useAuthStatus } from "@/hooks/useAuth";
 import LoginPage from "@/pages/login";
 
@@ -7,6 +9,14 @@ interface AuthWrapperProps {
 
 export default function AuthWrapper({ children }: AuthWrapperProps) {
   const { isAuthenticated, isLoading, token } = useAuthStatus();
+  const [location, setLocation] = useLocation();
+
+  // Redirect to dashboard if user is authenticated and on root path
+  useEffect(() => {
+    if (isAuthenticated && location === '/') {
+      setLocation('/dashboard');
+    }
+  }, [isAuthenticated, location, setLocation]);
 
   // Show loading only when we have a token and are fetching user data
   if (isLoading) {

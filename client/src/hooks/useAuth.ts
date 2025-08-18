@@ -44,15 +44,16 @@ export function useLogin() {
       });
       return result;
     },
-    onSuccess: (data: LoginResult) => {
+    onSuccess: async (data: LoginResult) => {
       if (data.success && data.token) {
         localStorage.setItem('auth_token', data.token);
-        // Force refresh the auth state
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-        queryClient.refetchQueries({ queryKey: ['/api/auth/me'] });
+        // Force refresh the auth state and wait for it
+        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
         
-        // Redirect to dashboard after successful login
-        setLocation('/dashboard');
+        // Small delay to ensure auth state is updated
+        setTimeout(() => {
+          setLocation('/dashboard');
+        }, 100);
         
         toast({
           title: "Login successful",
