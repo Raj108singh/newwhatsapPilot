@@ -149,6 +149,12 @@ class WhatsAppService {
   async sendMessage(message: WhatsAppMessage): Promise<any> {
     const url = `https://graph.facebook.com/v17.0/${this.phoneNumberId}/messages`;
     
+    console.log('--- WhatsApp API Request ---');
+    console.log('URL:', url);
+    console.log('Phone Number ID:', this.phoneNumberId);
+    console.log('Token (first 20 chars):', this.token?.substring(0, 20) + '...');
+    console.log('Message payload:', JSON.stringify(message, null, 2));
+    
     try {
       const response = await fetch(url, {
         method: 'POST',
@@ -158,6 +164,9 @@ class WhatsAppService {
         },
         body: JSON.stringify(message),
       });
+
+      console.log('--- WhatsApp API Response ---');
+      console.log('Status:', response.status, response.statusText);
 
       if (!response.ok) {
         let errorData;
@@ -176,7 +185,9 @@ class WhatsAppService {
         throw new Error(`WhatsApp API error: ${response.status} ${response.statusText}. Details: ${JSON.stringify(errorData)}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('WhatsApp API success result:', result);
+      return result;
     } catch (error) {
       console.error('WhatsApp API error:', error);
       throw error;
@@ -215,6 +226,8 @@ class WhatsAppService {
         };
 
         console.log('Sending template message:', JSON.stringify(message, null, 2));
+      console.log('API URL:', `https://graph.facebook.com/v17.0/${this.phoneNumberId}/messages`);
+      console.log('Auth token (first 20 chars):', this.token.substring(0, 20) + '...');
 
         const result = await this.sendMessage(message);
         results.push({ recipient, success: true, result });
@@ -742,6 +755,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Bulk messages completed:', results);
           const successCount = results.filter(r => r.success).length;
           const failedCount = results.filter(r => !r.success).length;
+
+          // Log detailed results for debugging
+          results.forEach((result, index) => {
+            console.log(`Message ${index + 1} - ${result.recipient}:`, result.success ? 'SUCCESS' : `FAILED: ${result.error}`);
+          });
 
           await storage.updateCampaign(campaign.id, {
             status: 'completed',
