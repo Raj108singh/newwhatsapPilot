@@ -52,13 +52,37 @@ export default function Chat() {
     ? allMessages.filter(m => m.phoneNumber === selectedPhoneNumber)
     : [];
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedPhoneNumber) return;
 
-    // In a real implementation, this would send via WhatsApp API
-    console.log('Sending message:', { to: selectedPhoneNumber, message: newMessage });
-    setNewMessage("");
+    try {
+      const response = await fetch('/api/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: selectedPhoneNumber,
+          message: newMessage,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Failed to send message:', error);
+        alert('Failed to send message: ' + (error.error || 'Unknown error'));
+        return;
+      }
+
+      const result = await response.json();
+      console.log('Message sent successfully:', result);
+      setNewMessage("");
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message');
+    }
   };
 
   return (

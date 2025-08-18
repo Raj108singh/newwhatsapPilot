@@ -602,9 +602,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send individual message API
+  app.post('/api/send-message', async (req, res) => {
+    try {
+      const { phoneNumber, message } = req.body;
+
+      if (!phoneNumber || !message) {
+        return res.status(400).json({ error: 'Phone number and message are required' });
+      }
+
+      // Update credentials from database
+      await whatsappService.updateCredentials();
+
+      // Check if credentials are configured
+      const credentialsConfigured = await whatsappService.areCredentialsConfigured();
+      
+      if (!credentialsConfigured) {
+        return res.status(400).json({ 
+          error: 'WhatsApp credentials not configured. Please add your credentials in Settings.' 
+        });
+      }
+
+      // Send message using WhatsApp API
+      const whatsappMessage: WhatsAppMessage = {
+        messaging_product: 'whatsapp',
+        to: phoneNumber,
+        type: 'text',
+        text: {
+          body: message
+        }
+      };
+
+      const result = await whatsappService.sendMessage(whatsappMessage);
+
+      // Store outbound message in database
+      const storedMessage = await storage.createMessage({
+        phoneNumber,
+        content: message,
+        direction: 'outbound',
+        messageType: 'text',
+        status: 'sent',
+      });
+
+      // Broadcast to connected clients
+      broadcastMessage({
+        type: 'new_message',
+        data: storedMessage,
+      });
+
+      res.json({
+        success: true,
+        message: 'Message sent successfully',
+        data: storedMessage,
+        whatsappResponse: result
+      });
+
+    } catch (error) {
+      console.error('Send message error:', error);
+      res.status(500).json({ 
+        error: 'Failed to send message',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Webhook endpoint for WhatsApp
   app.post('/api/webhook', async (req, res) => {
     try {
+      console.log('Webhook received:', JSON.stringify(req.body, null, 2));
+      
       const { entry } = req.body;
 
       if (entry && entry[0] && entry[0].changes) {
@@ -613,20 +679,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (changes.field === 'messages' && changes.value.messages) {
           const incomingMessage = changes.value.messages[0];
           
+          console.log('Processing incoming message:', incomingMessage);
+          
           // Store incoming message
           const message = await storage.createMessage({
             phoneNumber: incomingMessage.from,
-            content: incomingMessage.text?.body || incomingMessage.type,
+            content: incomingMessage.text?.body || incomingMessage.type || 'Media message',
             direction: 'inbound',
-            messageType: incomingMessage.type,
+            messageType: incomingMessage.type || 'text',
             status: 'received',
           });
+
+          console.log('Stored incoming message:', message);
 
           // Broadcast to connected clients
           broadcastMessage({
             type: 'new_message',
             data: message,
           });
+
+          console.log('Broadcasted message to clients');
         }
       }
 
