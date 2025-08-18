@@ -22,6 +22,27 @@ const templateFormSchema = insertTemplateSchema.extend({
 
 type TemplateFormData = z.infer<typeof templateFormSchema>;
 
+// Helper function to format template text with parameter placeholders
+function formatTemplateText(text: string): string {
+  // Replace {{1}}, {{2}}, etc. with more readable placeholders
+  return text.replace(/\{\{(\d+)\}\}/g, (match, num) => {
+    const placeholders = [
+      '[Customer Name]',
+      '[Product/Service]', 
+      '[Date/Time]',
+      '[Amount]',
+      '[Order Number]',
+      '[Link]',
+      '[Phone Number]',
+      '[Email]',
+      '[Address]',
+      '[Custom Value]'
+    ];
+    const index = parseInt(num) - 1;
+    return placeholders[index] || `[Parameter ${num}]`;
+  });
+}
+
 export default function Templates() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const { toast } = useToast();
@@ -289,10 +310,31 @@ export default function Templates() {
                     <div className="space-y-4">
                       <div>
                         <Label className="text-sm font-medium text-slate-600">Message Body:</Label>
-                        <div className="mt-1 p-3 bg-slate-50 rounded-lg border">
-                          <p className="text-sm text-slate-700">
-                            {bodyComponent?.text || "No body text available"}
-                          </p>
+                        <div className="mt-1 p-4 bg-white rounded-lg border border-green-200 shadow-sm">
+                          <div className="relative">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-green-500 rounded-full"></div>
+                            <div className="pl-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <i className="fas fa-certificate text-green-600 text-xs"></i>
+                                <span className="text-xs font-medium text-green-700 uppercase tracking-wide">
+                                  Business Template
+                                </span>
+                              </div>
+                              <p className="text-sm text-slate-800 font-medium whitespace-pre-wrap leading-relaxed">
+                                {formatTemplateText(bodyComponent?.text || "No body text available")}
+                              </p>
+                              <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                                <div className="flex items-center gap-1">
+                                  <i className="fas fa-language"></i>
+                                  <span>{template.language.toUpperCase()}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <i className="fas fa-clock"></i>
+                                  <span>Template message</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       
