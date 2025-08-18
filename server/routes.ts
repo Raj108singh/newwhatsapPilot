@@ -729,15 +729,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Create campaign
-      const campaign = await storage.createCampaign({
-        name: campaignName || `Campaign ${new Date().toISOString()}`,
-        templateId,
-        recipients,
-        totalRecipients: recipients.length,
-        status: 'running',
-      });
-
-      console.log('Campaign created:', campaign.id);
+      try {
+        const campaign = await storage.createCampaign({
+          name: campaignName || `Campaign ${new Date().toISOString()}`,
+          templateId,
+          recipients,
+          totalRecipients: recipients.length,
+          status: 'running',
+        });
+        console.log('Campaign created successfully:', campaign.id);
+        
+        if (!campaign || !campaign.id) {
+          throw new Error('Campaign creation failed - no campaign returned');
+        }
       console.log('Starting bulk message sending:', { 
         templateId, 
         recipientsCount: recipients.length, 
@@ -769,60 +773,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parameters: parameters
       });
       
-      whatsappService.sendBulkMessages(recipients, templateId, parameters)
-        .then(async (results) => {
-          console.log('Bulk messages completed:', results);
-          const successCount = results.filter(r => r.success).length;
-          const failedCount = results.filter(r => !r.success).length;
+        whatsappService.sendBulkMessages(recipients, templateId, parameters)
+          .then(async (results) => {
+            console.log('Bulk messages completed:', results);
+            const successCount = results.filter(r => r.success).length;
+            const failedCount = results.filter(r => !r.success).length;
 
-          // Log detailed results for debugging
-          results.forEach((result, index) => {
-            console.log(`Message ${index + 1} - ${result.recipient}:`, result.success ? 'SUCCESS' : `FAILED: ${result.error}`);
+            // Log detailed results for debugging
+            results.forEach((result, index) => {
+              console.log(`Message ${index + 1} - ${result.recipient}:`, result.success ? 'SUCCESS' : `FAILED: ${result.error}`);
+            });
+
+            await storage.updateCampaign(campaign.id, {
+              status: 'completed',
+              sentCount: successCount,
+              deliveredCount: successCount, // Assume sent = delivered for now
+              failedCount,
+            });
+
+            // Broadcast new messages to all connected clients for real-time updates
+            const allMessages = await storage.getMessages();
+            broadcastMessage({
+              type: 'messages_updated',
+              data: allMessages,
+            });
+
+            // Broadcast campaign completion
+            broadcastMessage({
+              type: 'campaign_completed',
+              data: {
+                campaignId: campaign.id,
+                results,
+              },
+            });
+            })
+          .catch(async (error) => {
+            console.error('Bulk messages failed:', error);
+            await storage.updateCampaign(campaign.id, {
+              status: 'failed',
+            });
+
+            broadcastMessage({
+              type: 'campaign_failed',
+              data: {
+                campaignId: campaign.id,
+                error: error.message,
+              },
+            });
           });
 
-          await storage.updateCampaign(campaign.id, {
-            status: 'completed',
-            sentCount: successCount,
-            deliveredCount: successCount, // Assume sent = delivered for now
-            failedCount,
-          });
-
-          // Broadcast new messages to all connected clients for real-time updates
-          const allMessages = await storage.getMessages();
-          broadcastMessage({
-            type: 'messages_updated',
-            data: allMessages,
-          });
-
-          // Broadcast campaign completion
-          broadcastMessage({
-            type: 'campaign_completed',
-            data: {
-              campaignId: campaign.id,
-              results,
-            },
-          });
-        })
-        .catch(async (error) => {
-          console.error('Bulk messages failed:', error);
-          await storage.updateCampaign(campaign.id, {
-            status: 'failed',
-          });
-
-          broadcastMessage({
-            type: 'campaign_failed',
-            data: {
-              campaignId: campaign.id,
-              error: error.message,
-            },
-          });
+        res.json({
+          success: true,
+          campaignId: campaign.id,
+          message: 'Bulk message campaign started',
         });
 
-      res.json({
-        success: true,
-        campaignId: campaign.id,
-        message: 'Bulk message campaign started',
-      });
+      } catch (campaignError) {
+        console.error('Campaign creation failed:', campaignError);
+        res.status(500).json({ 
+          error: 'Failed to create campaign',
+          details: campaignError instanceof Error ? campaignError.message : 'Unknown error'
+        });
+        return;
+      }
 
     } catch (error) {
       console.error('Bulk messaging error:', error);
