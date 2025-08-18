@@ -1,5 +1,8 @@
-import { type User, type InsertUser, type Template, type InsertTemplate, type Message, type InsertMessage, type Campaign, type InsertCampaign, type Contact, type InsertContact } from "@shared/schema";
+import { type User, type InsertUser, type Template, type InsertTemplate, type Message, type InsertMessage, type Campaign, type InsertCampaign, type Contact, type InsertContact, type Setting, type InsertSetting } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { users, templates, messages, campaigns, contacts, settings } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -32,6 +35,13 @@ export interface IStorage {
   createContact(contact: InsertContact): Promise<Contact>;
   updateContact(id: string, contact: Partial<InsertContact>): Promise<Contact | undefined>;
   deleteContact(id: string): Promise<boolean>;
+
+  // Settings
+  getSettings(): Promise<Setting[]>;
+  getSetting(key: string): Promise<Setting | undefined>;
+  setSetting(setting: InsertSetting): Promise<Setting>;
+  updateSetting(key: string, value: any): Promise<Setting | undefined>;
+  deleteSetting(key: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -40,6 +50,7 @@ export class MemStorage implements IStorage {
   private messages: Map<string, Message>;
   private campaigns: Map<string, Campaign>;
   private contacts: Map<string, Contact>;
+  private settings: Map<string, Setting>;
 
   constructor() {
     this.users = new Map();
@@ -47,6 +58,7 @@ export class MemStorage implements IStorage {
     this.messages = new Map();
     this.campaigns = new Map();
     this.contacts = new Map();
+    this.settings = new Map();
 
     // Initialize with sample data
     this.initSampleData();
@@ -257,6 +269,245 @@ export class MemStorage implements IStorage {
   async deleteContact(id: string): Promise<boolean> {
     return this.contacts.delete(id);
   }
+
+  // Settings
+  async getSettings(): Promise<Setting[]> {
+    return Array.from(this.settings.values());
+  }
+
+  async getSetting(key: string): Promise<Setting | undefined> {
+    return Array.from(this.settings.values()).find(setting => setting.key === key);
+  }
+
+  async setSetting(insertSetting: InsertSetting): Promise<Setting> {
+    const existing = await this.getSetting(insertSetting.key);
+    if (existing) {
+      return this.updateSetting(insertSetting.key, insertSetting.value) as Promise<Setting>;
+    }
+
+    const id = randomUUID();
+    const setting: Setting = {
+      ...insertSetting,
+      id,
+      category: insertSetting.category || 'general',
+      isEncrypted: insertSetting.isEncrypted || false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.settings.set(id, setting);
+    return setting;
+  }
+
+  async updateSetting(key: string, value: any): Promise<Setting | undefined> {
+    const existing = await this.getSetting(key);
+    if (!existing) return undefined;
+
+    const updated: Setting = {
+      ...existing,
+      value,
+      updatedAt: new Date(),
+    };
+    this.settings.set(existing.id, updated);
+    return updated;
+  }
+
+  async deleteSetting(key: string): Promise<boolean> {
+    const existing = await this.getSetting(key);
+    if (!existing) return false;
+    return this.settings.delete(existing.id);
+  }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  // Users
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  // Templates
+  async getTemplates(): Promise<Template[]> {
+    return db.select().from(templates);
+  }
+
+  async getTemplate(id: string): Promise<Template | undefined> {
+    const [template] = await db.select().from(templates).where(eq(templates.id, id));
+    return template || undefined;
+  }
+
+  async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
+    const [template] = await db
+      .insert(templates)
+      .values({
+        ...insertTemplate,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return template;
+  }
+
+  async updateTemplate(id: string, templateUpdate: Partial<InsertTemplate>): Promise<Template | undefined> {
+    const [updated] = await db
+      .update(templates)
+      .set({ ...templateUpdate, updatedAt: new Date() })
+      .where(eq(templates.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(templates).where(eq(templates.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // Messages
+  async getMessages(): Promise<Message[]> {
+    return db.select().from(messages);
+  }
+
+  async getMessage(id: string): Promise<Message | undefined> {
+    const [message] = await db.select().from(messages).where(eq(messages.id, id));
+    return message || undefined;
+  }
+
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const [message] = await db
+      .insert(messages)
+      .values({
+        ...insertMessage,
+        createdAt: new Date(),
+      })
+      .returning();
+    return message;
+  }
+
+  async getMessagesByPhoneNumber(phoneNumber: string): Promise<Message[]> {
+    return db.select().from(messages).where(eq(messages.phoneNumber, phoneNumber));
+  }
+
+  // Campaigns
+  async getCampaigns(): Promise<Campaign[]> {
+    return db.select().from(campaigns);
+  }
+
+  async getCampaign(id: string): Promise<Campaign | undefined> {
+    const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
+    return campaign || undefined;
+  }
+
+  async createCampaign(insertCampaign: InsertCampaign): Promise<Campaign> {
+    const [campaign] = await db
+      .insert(campaigns)
+      .values({
+        ...insertCampaign,
+        createdAt: new Date(),
+      })
+      .returning();
+    return campaign;
+  }
+
+  async updateCampaign(id: string, campaignUpdate: Partial<InsertCampaign>): Promise<Campaign | undefined> {
+    const [updated] = await db
+      .update(campaigns)
+      .set(campaignUpdate)
+      .where(eq(campaigns.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Contacts
+  async getContacts(): Promise<Contact[]> {
+    return db.select().from(contacts);
+  }
+
+  async getContact(id: string): Promise<Contact | undefined> {
+    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+    return contact || undefined;
+  }
+
+  async createContact(insertContact: InsertContact): Promise<Contact> {
+    const [contact] = await db
+      .insert(contacts)
+      .values({
+        ...insertContact,
+        createdAt: new Date(),
+      })
+      .returning();
+    return contact;
+  }
+
+  async updateContact(id: string, contactUpdate: Partial<InsertContact>): Promise<Contact | undefined> {
+    const [updated] = await db
+      .update(contacts)
+      .set(contactUpdate)
+      .where(eq(contacts.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteContact(id: string): Promise<boolean> {
+    const result = await db.delete(contacts).where(eq(contacts.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // Settings
+  async getSettings(): Promise<Setting[]> {
+    return db.select().from(settings);
+  }
+
+  async getSetting(key: string): Promise<Setting | undefined> {
+    const [setting] = await db.select().from(settings).where(eq(settings.key, key));
+    return setting || undefined;
+  }
+
+  async setSetting(insertSetting: InsertSetting): Promise<Setting> {
+    const existing = await this.getSetting(insertSetting.key);
+    if (existing) {
+      return this.updateSetting(insertSetting.key, insertSetting.value) as Promise<Setting>;
+    }
+
+    const [setting] = await db
+      .insert(settings)
+      .values({
+        ...insertSetting,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return setting;
+  }
+
+  async updateSetting(key: string, value: any): Promise<Setting | undefined> {
+    const [updated] = await db
+      .update(settings)
+      .set({ value, updatedAt: new Date() })
+      .where(eq(settings.key, key))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteSetting(key: string): Promise<boolean> {
+    const result = await db.delete(settings).where(eq(settings.key, key));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+}
+
+// Use DatabaseStorage in production, MemStorage for development
+export const storage = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL 
+  ? new DatabaseStorage() 
+  : new MemStorage();

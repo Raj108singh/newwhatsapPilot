@@ -8,6 +8,18 @@ WhatsApp Pro is a comprehensive business messaging platform that enables compani
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (August 18, 2025)
+
+✓ **Database Migration Completed**: Successfully migrated from in-memory storage to PostgreSQL with Drizzle ORM
+✓ **Settings System Enhanced**: Added persistent settings storage with database backend and local storage support
+✓ **WhatsApp Business API Improved**: Enhanced integration with support for Business Account ID and proper template syncing
+✓ **Template Management Enhanced**: Fixed template refreshing from WhatsApp Business API with better error handling
+✓ **Local Storage Utilities**: Created comprehensive local storage system for frontend data persistence
+✓ **API Routes Expanded**: Added complete CRUD operations for all entities with proper validation
+✓ **Database Schema Updated**: Added settings table and relationships for production deployment
+
+The application now supports both development (in-memory) and production (PostgreSQL) environments and is ready for deployment on external servers.
+
 ## System Architecture
 
 ### Frontend Architecture

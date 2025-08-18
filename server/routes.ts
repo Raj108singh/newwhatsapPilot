@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertTemplateSchema, insertMessageSchema, insertCampaignSchema, insertContactSchema } from "@shared/schema";
+import { insertTemplateSchema, insertMessageSchema, insertCampaignSchema, insertContactSchema, insertSettingSchema } from "@shared/schema";
 import { z } from "zod";
 
 interface WhatsAppMessage {
@@ -23,10 +23,59 @@ interface WhatsAppMessage {
 class WhatsAppService {
   private token: string;
   private phoneNumberId: string;
+  private businessAccountId: string;
 
   constructor() {
     this.token = process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || "default_token";
     this.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || "default_phone_id";
+    this.businessAccountId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || "default_business_id";
+  }
+
+  // Get business account details
+  async getBusinessAccount(): Promise<any> {
+    const url = `https://graph.facebook.com/v18.0/${this.businessAccountId}`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`WhatsApp Business API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('WhatsApp Business Account API error:', error);
+      throw error;
+    }
+  }
+
+  // Get templates from business account
+  async getTemplates(): Promise<any[]> {
+    const url = `https://graph.facebook.com/v18.0/${this.businessAccountId}/message_templates`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`WhatsApp Templates API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.error('WhatsApp Templates API error:', error);
+      throw error;
+    }
   }
 
   async sendMessage(message: WhatsAppMessage): Promise<any> {
@@ -273,35 +322,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/templates/refresh', async (req, res) => {
     try {
       const whatsappToken = process.env.WHATSAPP_TOKEN;
-      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      const businessAccountId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
 
-      if (!whatsappToken || !phoneNumberId) {
-        return res.status(400).json({ error: 'WhatsApp credentials not configured' });
-      }
-
-      const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/message_templates`, {
-        headers: {
-          'Authorization': `Bearer ${whatsappToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const templates = data.data || [];
-        
-        res.json({ 
-          success: true, 
-          message: `Refreshed ${templates.length} templates from WhatsApp Business API`,
-          templates: templates.length 
+      if (!whatsappToken || !businessAccountId) {
+        return res.status(400).json({ 
+          error: 'WhatsApp credentials not configured. Please set WHATSAPP_TOKEN and WHATSAPP_BUSINESS_ACCOUNT_ID in your environment variables.' 
         });
-      } else {
-        const errorData = await response.text();
-        res.status(400).json({ error: 'Failed to fetch templates from WhatsApp', details: errorData });
       }
+
+      // Fetch templates using the business account ID
+      const templates = await whatsappService.getTemplates();
+      
+      // Transform and store templates locally
+      let savedCount = 0;
+      for (const template of templates) {
+        try {
+          const bodyComponent = template.components?.find((c: any) => c.type === 'BODY');
+          
+          await storage.createTemplate({
+            name: template.name,
+            category: template.category?.toLowerCase() || 'marketing',
+            language: template.language || 'en',
+            status: template.status === 'APPROVED' ? 'approved' : 
+                   template.status === 'PENDING' ? 'pending' : 'rejected',
+            components: template.components || [
+              {
+                type: 'BODY',
+                text: bodyComponent?.text || `Template: ${template.name}`
+              }
+            ]
+          });
+          savedCount++;
+        } catch (error) {
+          // Template might already exist, continue with next
+          console.log(`Template ${template.name} already exists, skipping...`);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Successfully refreshed templates from WhatsApp Business API`,
+        totalFetched: templates.length,
+        newTemplatesSaved: savedCount,
+        templates: templates.length 
+      });
     } catch (error) {
       console.error('Template refresh error:', error);
-      res.status(500).json({ error: 'Failed to refresh templates' });
+      res.status(500).json({ error: 'Failed to refresh templates from WhatsApp Business API' });
     }
   });
 
@@ -560,14 +627,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Settings endpoint (informational only - Replit handles actual env vars)
+  // Settings endpoint
   app.get('/api/settings', async (req, res) => {
     try {
+      // Get settings from database
+      const businessNameSetting = await storage.getSetting('business_name');
+      const timezoneSetting = await storage.getSetting('timezone');
+      
       const settings = {
         whatsappConfigured: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID),
         webhookUrl: `${req.protocol}://${req.get('host')}/api/webhook`,
-        businessName: 'WhatsApp Pro Business',
-        timezone: 'UTC',
+        businessName: businessNameSetting?.value || 'WhatsApp Pro Business',
+        timezone: timezoneSetting?.value || 'UTC',
       };
       res.json(settings);
     } catch (error) {
@@ -614,14 +685,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { businessName, timezone } = req.body;
       
-      // In a real application, you would save these to your database
-      // For now, we just acknowledge the request
+      // Save settings to database
+      if (businessName) {
+        await storage.setSetting({
+          key: 'business_name',
+          value: businessName,
+          category: 'general'
+        });
+      }
+      
+      if (timezone) {
+        await storage.setSetting({
+          key: 'timezone',
+          value: timezone,
+          category: 'general'
+        });
+      }
+      
       res.json({ 
         success: true, 
         message: 'General settings saved successfully',
         data: { businessName, timezone }
       });
     } catch (error) {
+      console.error('General settings error:', error);
       res.status(500).json({ error: 'Failed to save general settings' });
     }
   });
