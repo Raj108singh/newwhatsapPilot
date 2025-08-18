@@ -329,10 +329,14 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
         settingsMap.whatsapp_business_account_id
       );
 
+      // Use the correct public domain for webhook URL
+      const publicDomain = process.env.REPLIT_DEV_DOMAIN || req.get('host');
+      const webhookUrl = `https://${publicDomain}/api/webhook`;
+
       res.json({
         ...settingsMap,
         whatsappConfigured,
-        webhookUrl: `${req.protocol}://${req.get('host')}/api/webhook`,
+        webhookUrl,
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch settings" });
