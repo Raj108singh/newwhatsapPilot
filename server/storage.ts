@@ -472,19 +472,36 @@ export class DatabaseStorage implements IStorage {
 
   async getSetting(key: string): Promise<Setting | undefined> {
     const [setting] = await db.select().from(settings).where(eq(settings.key, key));
+    if (setting && setting.value) {
+      // Parse JSON value and handle potential double-encoding
+      try {
+        let value = setting.value;
+        if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+          value = JSON.parse(value);
+        }
+        return { ...setting, value };
+      } catch (error) {
+        console.error('Error parsing setting value:', error);
+        return setting;
+      }
+    }
     return setting || undefined;
   }
 
   async setSetting(insertSetting: InsertSetting): Promise<Setting> {
+    // Ensure value is stored as a plain string, not JSON-encoded
+    const valueToStore = typeof insertSetting.value === 'string' ? insertSetting.value : JSON.stringify(insertSetting.value);
+    
     const existing = await this.getSetting(insertSetting.key);
     if (existing) {
-      return this.updateSetting(insertSetting.key, insertSetting.value) as Promise<Setting>;
+      return this.updateSetting(insertSetting.key, valueToStore) as Promise<Setting>;
     }
 
     const [setting] = await db
       .insert(settings)
       .values({
         ...insertSetting,
+        value: valueToStore,
         createdAt: new Date(),
         updatedAt: new Date(),
       })

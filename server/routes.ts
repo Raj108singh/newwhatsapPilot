@@ -6,6 +6,7 @@ import { insertTemplateSchema, insertMessageSchema, insertCampaignSchema, insert
 import { z } from "zod";
 
 interface WhatsAppMessage {
+  messaging_product: 'whatsapp';
   to: string;
   type: string;
   template?: {
@@ -38,6 +39,15 @@ class WhatsAppService {
       const phoneNumberIdSetting = await storage.getSetting('whatsapp_phone_number_id');
       const businessAccountIdSetting = await storage.getSetting('whatsapp_business_account_id');
 
+      console.log('Retrieved settings from database:', {
+        tokenExists: !!tokenSetting?.value,
+        phoneNumberIdExists: !!phoneNumberIdSetting?.value,
+        businessAccountIdExists: !!businessAccountIdSetting?.value,
+        tokenPrefix: tokenSetting?.value ? (tokenSetting.value as string).substring(0, 10) + '...' : 'None',
+        phoneNumberId: phoneNumberIdSetting?.value || 'None',
+        businessAccountId: businessAccountIdSetting?.value || 'None'
+      });
+
       if (tokenSetting?.value) {
         this.token = tokenSetting.value as string;
       }
@@ -47,6 +57,12 @@ class WhatsAppService {
       if (businessAccountIdSetting?.value) {
         this.businessAccountId = businessAccountIdSetting.value as string;
       }
+
+      console.log('Updated WhatsApp service credentials:', {
+        tokenPrefix: this.token.substring(0, 10) + '...',
+        phoneNumberId: this.phoneNumberId,
+        businessAccountId: this.businessAccountId
+      });
     } catch (error) {
       console.error('Error updating WhatsApp credentials from database:', error);
     }
@@ -120,7 +136,20 @@ class WhatsAppService {
       });
 
       if (!response.ok) {
-        throw new Error(`WhatsApp API error: ${response.status} ${response.statusText}`);
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = await response.text();
+        }
+        console.error('WhatsApp API error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData,
+          requestMessage: message,
+          url: url
+        });
+        throw new Error(`WhatsApp API error: ${response.status} ${response.statusText}. Details: ${JSON.stringify(errorData)}`);
       }
 
       return await response.json();
@@ -131,19 +160,29 @@ class WhatsAppService {
   }
 
   async sendBulkMessages(recipients: string[], templateId: string, parameters: any[] = []): Promise<any[]> {
+    // Update credentials before sending
+    await this.updateCredentials();
+    
     const template = await storage.getTemplate(templateId);
     if (!template) {
       throw new Error('Template not found');
     }
 
+    console.log('Sending bulk messages with credentials:', {
+      tokenPrefix: this.token.substring(0, 10) + '...',
+      phoneNumberId: this.phoneNumberId,
+      businessAccountId: this.businessAccountId
+    });
+
     const results = [];
     for (const recipient of recipients) {
       try {
         const message: WhatsAppMessage = {
+          messaging_product: 'whatsapp',
           to: recipient,
           type: 'template',
           template: {
-            name: template.name.toLowerCase().replace(/\s+/g, '_'),
+            name: template.name,
             language: {
               code: template.language,
             },
@@ -170,6 +209,7 @@ class WhatsAppService {
         });
 
       } catch (error) {
+        console.error(`Failed to send message to ${recipient}:`, error);
         results.push({ recipient, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
@@ -598,16 +638,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Webhook verification for WhatsApp
-  app.get('/api/webhook', (req, res) => {
-    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || 'default_verify_token';
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
+  app.get('/api/webhook', async (req, res) => {
+    try {
+      // Get verify token from database first
+      await whatsappService.updateCredentials();
+      const verifyTokenSetting = await storage.getSetting('whatsapp_verify_token');
+      const verifyToken = verifyTokenSetting?.value || process.env.WHATSAPP_VERIFY_TOKEN || 'default_verify_token';
+      
+      const mode = req.query['hub.mode'];
+      const token = req.query['hub.verify_token'];
+      const challenge = req.query['hub.challenge'];
 
-    if (mode === 'subscribe' && token === verifyToken) {
-      res.status(200).send(challenge);
-    } else {
-      res.status(403).send('Forbidden');
+      console.log('Webhook verification attempt:', { mode, token, expectedToken: verifyToken });
+
+      if (mode === 'subscribe' && token === verifyToken) {
+        res.status(200).send(challenge);
+      } else {
+        res.status(403).send('Forbidden');
+      }
+    } catch (error) {
+      console.error('Webhook verification error:', error);
+      res.status(500).send('Internal Server Error');
     }
   });
 
