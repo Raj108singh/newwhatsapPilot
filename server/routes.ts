@@ -311,7 +311,7 @@ class WhatsAppService {
     templateComponents.forEach((component: any) => {
       if (component.type === "HEADER" && component.format === "TEXT" && component.text) {
         const headerMatches = component.text.match(/\{\{(\d+)\}\}/g);
-        if (headerMatches && parameters[paramIndex]) {
+        if (headerMatches && parameters.length > 0) {
           components.push({
             type: "header",
             parameters: headerMatches.map(() => ({
@@ -324,7 +324,7 @@ class WhatsAppService {
       
       if (component.type === "BODY" && component.text) {
         const bodyMatches = component.text.match(/\{\{(\d+)\}\}/g);
-        if (bodyMatches && bodyMatches.length > 0) {
+        if (bodyMatches && bodyMatches.length > 0 && parameters.length > 0) {
           components.push({
             type: "body",
             parameters: bodyMatches.map(() => ({
@@ -340,7 +340,7 @@ class WhatsAppService {
         component.buttons.forEach((button: any, buttonIndex: number) => {
           if (button.type === "URL" && button.url && button.url.includes("{{")) {
             const urlMatches = button.url.match(/\{\{(\d+)\}\}/g);
-            if (urlMatches) {
+            if (urlMatches && parameters.length > 0) {
               urlMatches.forEach(() => {
                 buttonParams.push({
                   type: "text",
@@ -362,6 +362,7 @@ class WhatsAppService {
       }
     });
     
+    console.log('Built template components:', JSON.stringify(components, null, 2));
     return components;
   }
 }

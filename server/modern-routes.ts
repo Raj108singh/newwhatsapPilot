@@ -643,17 +643,28 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
 
   // Webhook verification
   app.get('/api/webhook', async (req, res) => {
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
+    try {
+      const mode = req.query['hub.mode'];
+      const token = req.query['hub.verify_token'];
+      const challenge = req.query['hub.challenge'];
 
-    const verifyTokenSetting = await storage.getSetting('whatsapp_verify_token');
-    const expectedToken = verifyTokenSetting?.value || 'secretwebhook';
+      console.log('Webhook verification request:', { mode, token, challenge });
 
-    if (mode === 'subscribe' && token === expectedToken) {
-      res.status(200).send(challenge);
-    } else {
-      res.status(403).send('Forbidden');
+      const verifyTokenSetting = await storage.getSetting('whatsapp_verify_token');
+      const expectedToken = verifyTokenSetting?.value || 'secretwebhook';
+      
+      console.log('Expected token:', expectedToken, 'Received token:', token);
+
+      if (mode === 'subscribe' && token === expectedToken) {
+        console.log('Webhook verified successfully');
+        res.status(200).send(challenge);
+      } else {
+        console.log('Webhook verification failed');
+        res.status(403).send('Forbidden');
+      }
+    } catch (error) {
+      console.error('Webhook verification error:', error);
+      res.status(500).send('Internal Server Error');
     }
   });
 
