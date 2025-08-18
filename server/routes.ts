@@ -62,6 +62,13 @@ class WhatsAppService {
         this.businessAccountId = businessAccountIdSetting.value as string;
       }
 
+      if (!this.token || this.token === 'default_token') {
+        throw new Error('WhatsApp Access Token not configured. Please add your WhatsApp Business API token in Settings.');
+      }
+      if (!this.phoneNumberId || this.phoneNumberId === 'default_phone_id') {
+        throw new Error('WhatsApp Phone Number ID not configured. Please add your phone number ID in Settings.');
+      }
+
       console.log('Updated WhatsApp service credentials:', {
         tokenPrefix: this.token.substring(0, 10) + '...',
         phoneNumberId: this.phoneNumberId,
@@ -745,6 +752,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parameters: parameters 
       });
 
+      // Verify WhatsApp credentials before attempting to send
+      try {
+        await whatsappService.updateCredentials();
+        console.log('WhatsApp credentials verified successfully');
+      } catch (credError) {
+        console.error('WhatsApp credentials verification failed:', credError);
+        await storage.updateCampaign(campaign.id, {
+          status: 'failed',
+        });
+        res.status(400).json({ 
+          error: 'WhatsApp credentials not configured properly. Please check Settings.',
+          details: credError instanceof Error ? credError.message : 'Unknown error'
+        });
+        return;
+      }
+
       // Start sending messages in background
       console.log('About to call sendBulkMessages...');
       whatsappService.sendBulkMessages(recipients, templateId, parameters)
@@ -1101,6 +1124,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('General settings error:', error);
       res.status(500).json({ error: 'Failed to save general settings' });
+    }
+  });
+
+  // WhatsApp Configuration Test Endpoint  
+  app.get('/api/test-whatsapp', async (req, res) => {
+    try {
+      const results = {
+        credentials: {},
+        apiTest: null,
+        error: null
+      };
+
+      // Check credentials from database
+      const tokenSetting = await storage.getSetting('whatsapp_token');
+      const phoneNumberIdSetting = await storage.getSetting('whatsapp_phone_number_id');
+      const businessAccountIdSetting = await storage.getSetting('whatsapp_business_account_id');
+
+      results.credentials = {
+        hasToken: !!tokenSetting?.value,
+        hasPhoneNumberId: !!phoneNumberIdSetting?.value,
+        hasBusinessAccountId: !!businessAccountIdSetting?.value,
+        tokenPrefix: tokenSetting?.value ? (tokenSetting.value as string).substring(0, 15) + '...' : null,
+        phoneNumberId: phoneNumberIdSetting?.value || null,
+        businessAccountId: businessAccountIdSetting?.value || null
+      };
+
+      console.log('WhatsApp Test - Current credentials:', results.credentials);
+
+      // Test API if credentials exist
+      if (tokenSetting?.value && phoneNumberIdSetting?.value) {
+        try {
+          const testUrl = `https://graph.facebook.com/v17.0/${phoneNumberIdSetting.value}`;
+          console.log('Testing WhatsApp API with URL:', testUrl);
+          
+          const response = await fetch(testUrl, {
+            headers: {
+              'Authorization': `Bearer ${tokenSetting.value}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            results.apiTest = {
+              success: true,
+              phoneNumber: data.display_phone_number || data.phone_number || 'Unknown',
+              status: data.code_verification_status || 'Active',
+              id: data.id
+            };
+            console.log('WhatsApp API test successful:', results.apiTest);
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            results.apiTest = {
+              success: false,
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData
+            };
+            console.log('WhatsApp API test failed:', results.apiTest);
+          }
+        } catch (apiError) {
+          results.apiTest = {
+            success: false,
+            error: apiError instanceof Error ? apiError.message : 'Unknown API error'
+          };
+          console.log('WhatsApp API test error:', results.apiTest);
+        }
+      } else {
+        console.log('WhatsApp credentials missing - cannot test API');
+      }
+
+      res.json(results);
+    } catch (error) {
+      console.error('WhatsApp test endpoint error:', error);
+      res.status(500).json({ error: 'Failed to test WhatsApp configuration' });
     }
   });
 
