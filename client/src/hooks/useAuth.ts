@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { LoginCredentials, AuthUser } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +34,7 @@ export function useAuthStatus() {
 export function useLogin() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   return useMutation({
     mutationFn: async (credentials: LoginCredentials): Promise<LoginResult> => {
@@ -48,6 +50,10 @@ export function useLogin() {
         // Force refresh the auth state
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
         queryClient.refetchQueries({ queryKey: ['/api/auth/me'] });
+        
+        // Redirect to dashboard after successful login
+        setLocation('/dashboard');
+        
         toast({
           title: "Login successful",
           description: `Welcome back, ${data.user?.name || data.user?.username}!`,

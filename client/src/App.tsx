@@ -20,6 +20,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/dashboard" component={Dashboard} />
       <Route path="/bulk-message" component={BulkMessage} />
       <Route path="/conversations" component={ConversationsPage} />
       <Route path="/auto-reply" component={AutoReplyPage} />
