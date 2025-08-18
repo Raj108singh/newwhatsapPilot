@@ -10,7 +10,8 @@ export default function Settings() {
   const [whatsappSettings, setWhatsappSettings] = useState({
     token: "",
     phoneNumberId: "",
-    verifyToken: ""
+    verifyToken: "",
+    businessAccountId: ""
   });
   const [generalSettings, setGeneralSettings] = useState({
     businessName: "",
@@ -118,7 +119,8 @@ export default function Settings() {
         setWhatsappSettings({
           token: "",
           phoneNumberId: "",
-          verifyToken: ""
+          verifyToken: "",
+          businessAccountId: ""
         });
       } else {
         throw new Error(result.error || "Failed to save settings");
@@ -203,6 +205,20 @@ export default function Settings() {
                       />
                       <p className="text-xs text-slate-500 mt-1">
                         A secure string you create for webhook verification
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="businessAccountId">Business Account ID</Label>
+                      <Input
+                        id="businessAccountId"
+                        value={whatsappSettings.businessAccountId}
+                        onChange={(e) => setWhatsappSettings(prev => ({ ...prev, businessAccountId: e.target.value }))}
+                        placeholder="Enter your WhatsApp Business Account ID"
+                        data-testid="input-business-account-id"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Required for template refreshing from your WhatsApp Business account
                       </p>
                     </div>
 

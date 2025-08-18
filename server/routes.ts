@@ -31,6 +31,34 @@ class WhatsAppService {
     this.businessAccountId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || "default_business_id";
   }
 
+  // Update credentials from database
+  async updateCredentials(): Promise<void> {
+    try {
+      const tokenSetting = await storage.getSetting('whatsapp_token');
+      const phoneNumberIdSetting = await storage.getSetting('whatsapp_phone_number_id');
+      const businessAccountIdSetting = await storage.getSetting('whatsapp_business_account_id');
+
+      if (tokenSetting?.value) {
+        this.token = tokenSetting.value as string;
+      }
+      if (phoneNumberIdSetting?.value) {
+        this.phoneNumberId = phoneNumberIdSetting.value as string;
+      }
+      if (businessAccountIdSetting?.value) {
+        this.businessAccountId = businessAccountIdSetting.value as string;
+      }
+    } catch (error) {
+      console.error('Error updating WhatsApp credentials from database:', error);
+    }
+  }
+
+  // Check if credentials are configured
+  async areCredentialsConfigured(): Promise<boolean> {
+    await this.updateCredentials();
+    return !!(this.token && this.token !== 'default_token' && 
+              this.phoneNumberId && this.phoneNumberId !== 'default_phone_id');
+  }
+
   // Get business account details
   async getBusinessAccount(): Promise<any> {
     const url = `https://graph.facebook.com/v18.0/${this.businessAccountId}`;
@@ -321,12 +349,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Refresh templates from WhatsApp API
   app.post('/api/templates/refresh', async (req, res) => {
     try {
-      const whatsappToken = process.env.WHATSAPP_TOKEN;
-      const businessAccountId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
-
-      if (!whatsappToken || !businessAccountId) {
+      // Update credentials from database first
+      await whatsappService.updateCredentials();
+      
+      // Check if credentials are configured
+      const credentialsConfigured = await whatsappService.areCredentialsConfigured();
+      
+      if (!credentialsConfigured) {
         return res.status(400).json({ 
-          error: 'WhatsApp credentials not configured. Please set WHATSAPP_TOKEN and WHATSAPP_BUSINESS_ACCOUNT_ID in your environment variables.' 
+          error: 'WhatsApp credentials not configured. Please add your WhatsApp Token, Phone Number ID, and Business Account ID in Settings.' 
         });
       }
 
@@ -633,9 +664,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get settings from database
       const businessNameSetting = await storage.getSetting('business_name');
       const timezoneSetting = await storage.getSetting('timezone');
+      const whatsappTokenSetting = await storage.getSetting('whatsapp_token');
+      const whatsappPhoneNumberIdSetting = await storage.getSetting('whatsapp_phone_number_id');
+      
+      // Check if WhatsApp is configured either via env vars or database
+      const whatsappConfigured = !!(
+        (process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) ||
+        (whatsappTokenSetting?.value && whatsappPhoneNumberIdSetting?.value)
+      );
       
       const settings = {
-        whatsappConfigured: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID),
+        whatsappConfigured,
         webhookUrl: `${req.protocol}://${req.get('host')}/api/webhook`,
         businessName: businessNameSetting?.value || 'WhatsApp Pro Business',
         timezone: timezoneSetting?.value || 'UTC',
@@ -648,31 +687,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/settings', async (req, res) => {
     try {
-      const { token, phoneNumberId, verifyToken } = req.body;
+      const { token, phoneNumberId, verifyToken, businessAccountId } = req.body;
       
       // Validate that required fields are provided
       if (!token || !phoneNumberId || !verifyToken) {
         return res.status(400).json({ 
-          error: 'All fields are required: token, phoneNumberId, verifyToken' 
+          error: 'Required fields: token, phoneNumberId, verifyToken. BusinessAccountId is optional but recommended.' 
         });
       }
 
-      // In production, these would be saved to environment variables
-      // For now, we acknowledge the receipt and provide clear instructions
-      console.log('WhatsApp settings received:', {
+      // Store WhatsApp credentials in database
+      await storage.setSetting({
+        key: 'whatsapp_token',
+        value: token,
+        category: 'whatsapp',
+        isEncrypted: true
+      });
+
+      await storage.setSetting({
+        key: 'whatsapp_phone_number_id',
+        value: phoneNumberId,
+        category: 'whatsapp'
+      });
+
+      await storage.setSetting({
+        key: 'whatsapp_verify_token',
+        value: verifyToken,
+        category: 'whatsapp',
+        isEncrypted: true
+      });
+
+      if (businessAccountId) {
+        await storage.setSetting({
+          key: 'whatsapp_business_account_id',
+          value: businessAccountId,
+          category: 'whatsapp'
+        });
+      }
+
+      console.log('WhatsApp settings saved to database:', {
         token: token ? `${token.substring(0, 8)}...` : 'Not provided',
         phoneNumberId: phoneNumberId || 'Not provided',
-        verifyToken: verifyToken || 'Not provided'
+        verifyToken: verifyToken ? `${verifyToken.substring(0, 4)}...` : 'Not provided',
+        businessAccountId: businessAccountId || 'Not provided'
       });
 
       res.json({ 
         success: true, 
-        message: 'WhatsApp settings received successfully',
-        instructions: 'Please update your Replit Secrets with these exact values to activate the changes.',
+        message: 'WhatsApp settings saved successfully to database',
         data: {
-          tokenReceived: !!token,
-          phoneNumberIdReceived: !!phoneNumberId,
-          verifyTokenReceived: !!verifyToken
+          tokenSaved: !!token,
+          phoneNumberIdSaved: !!phoneNumberId,
+          verifyTokenSaved: !!verifyToken,
+          businessAccountIdSaved: !!businessAccountId
         }
       });
     } catch (error) {
