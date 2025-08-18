@@ -30,6 +30,9 @@ export const messages = pgTable("messages", {
   messageType: text("message_type").notNull().default("text"), // text, template, media
   status: text("status").notNull().default("sent"), // sent, delivered, read, failed
   templateId: varchar("template_id"),
+  templateData: json("template_data"), // Complete template data with all components
+  mediaUrl: text("media_url"), // For images, videos, documents
+  buttons: json("buttons"), // For interactive buttons
   createdAt: timestamp("created_at").defaultNow(),
 });
 

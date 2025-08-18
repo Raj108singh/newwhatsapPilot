@@ -1,5 +1,6 @@
 import { Message } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import TemplateMessage from "./template-message";
 
 interface ChatMessageProps {
   message: Message;
@@ -45,50 +46,57 @@ export default function ChatMessage({ message, contact }: ChatMessageProps) {
           <span className="text-slate-400">{message.phoneNumber.slice(-4)}</span>
         </div>
         <div className={cn(
-          "rounded-lg p-3 text-sm max-w-xs",
-          isInbound 
+          message.messageType === "template" ? "max-w-sm" : "rounded-lg p-3 text-sm max-w-xs",
+          message.messageType !== "template" && (isInbound 
             ? "bg-white border border-slate-200 text-slate-700" 
-            : "bg-green-500 text-white ml-auto"
+            : "bg-green-500 text-white ml-auto")
         )}>
           {message.messageType === "template" ? (
-            <div>
-              <div className="flex items-center gap-1 mb-2">
-                <i className="fas fa-file-alt text-xs"></i>
-                <span className={cn(
-                  "text-xs font-medium",
-                  isInbound ? "text-slate-500" : "text-green-100"
-                )}>
-                  Template Message
-                </span>
-              </div>
-              <div className="font-medium whitespace-pre-wrap">{formatTemplateContent(message.content)}</div>
-              <div className={cn(
-                "text-xs mt-1 opacity-75",
-                isInbound ? "text-slate-500" : "text-green-100"
-              )}>
-                <i className="fas fa-certificate mr-1"></i>
-                Business Template
-              </div>
-            </div>
+            <TemplateMessage
+              templateData={Array.isArray(message.templateData) ? message.templateData : undefined}
+              buttons={Array.isArray(message.buttons) ? message.buttons : undefined}
+              mediaUrl={message.mediaUrl || undefined}
+              content={message.content}
+              isInbound={isInbound}
+            />
           ) : (
             <div className="font-medium whitespace-pre-wrap">{message.content}</div>
           )}
+          {message.messageType !== "template" && (
+            <div className={cn(
+              "text-xs mt-1 flex items-center justify-end gap-1",
+              isInbound ? "text-slate-400" : "text-green-100"
+            )}>
+              <span>{timeAgo}</span>
+              {!isInbound && (
+                <i className={cn(
+                  "fas",
+                  message.status === "delivered" ? "fa-check-double text-blue-300" :
+                  message.status === "sent" ? "fa-check" :
+                  message.status === "failed" ? "fa-exclamation-triangle text-red-300" :
+                  "fa-clock"
+                )}></i>
+              )}
+            </div>
+          )}
+        </div>
+        {message.messageType === "template" && (
           <div className={cn(
-            "text-xs mt-1 flex items-center justify-end gap-1",
-            isInbound ? "text-slate-400" : "text-green-100"
+            "text-xs mt-1 flex items-center gap-1",
+            isInbound ? "justify-start text-slate-400" : "justify-end text-green-200"
           )}>
             <span>{timeAgo}</span>
             {!isInbound && (
               <i className={cn(
                 "fas",
-                message.status === "delivered" ? "fa-check-double text-blue-300" :
+                message.status === "delivered" ? "fa-check-double text-green-300" :
                 message.status === "sent" ? "fa-check" :
                 message.status === "failed" ? "fa-exclamation-triangle text-red-300" :
                 "fa-clock"
               )}></i>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -310,28 +310,97 @@ export default function Templates() {
                     <div className="space-y-4">
                       <div>
                         <Label className="text-sm font-medium text-slate-600">Message Body:</Label>
-                        <div className="mt-1 p-4 bg-white rounded-lg border border-green-200 shadow-sm">
-                          <div className="relative">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-green-500 rounded-full"></div>
-                            <div className="pl-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <i className="fas fa-certificate text-green-600 text-xs"></i>
-                                <span className="text-xs font-medium text-green-700 uppercase tracking-wide">
-                                  Business Template
-                                </span>
-                              </div>
-                              <p className="text-sm text-slate-800 font-medium whitespace-pre-wrap leading-relaxed">
-                                {formatTemplateText(bodyComponent?.text || "No body text available")}
-                              </p>
-                              <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                        <div className="mt-1 bg-white rounded-lg border border-green-200 shadow-sm overflow-hidden">
+                          {/* Header Component Preview */}
+                          {(() => {
+                            const components = Array.isArray(template.components) ? template.components : [];
+                            const headerComponent = components.find((c: any) => c.type === 'HEADER');
+                            if (headerComponent?.format === 'IMAGE') {
+                              return (
+                                <div className="w-full h-32 bg-gradient-to-r from-green-100 to-green-200 flex items-center justify-center">
+                                  <div className="text-center text-green-700">
+                                    <i className="fas fa-image text-2xl mb-2"></i>
+                                    <p className="text-xs">Header Image</p>
+                                  </div>
+                                </div>
+                              );
+                            } else if (headerComponent?.format === 'TEXT') {
+                              return (
+                                <div className="px-4 py-2 bg-green-50 border-b border-green-200">
+                                  <p className="font-semibold text-green-800 text-sm">{headerComponent.text}</p>
+                                </div>
+                              );
+                            }
+                          })()}
+
+                          {/* Body Content */}
+                          <div className="p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <i className="fas fa-certificate text-green-600 text-xs"></i>
+                              <span className="text-xs font-medium text-green-700 uppercase tracking-wide">
+                                Business Template
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-800 font-medium whitespace-pre-wrap leading-relaxed">
+                              {formatTemplateText(bodyComponent?.text || "No body text available")}
+                            </p>
+
+                            {/* Footer Component */}
+                            {(() => {
+                              const components = Array.isArray(template.components) ? template.components : [];
+                              const footerComponent = components.find((c: any) => c.type === 'FOOTER');
+                              if (footerComponent) {
+                                return (
+                                  <div className="mt-3 pt-2 border-t border-slate-200">
+                                    <p className="text-xs text-slate-500">{footerComponent.text}</p>
+                                  </div>
+                                );
+                              }
+                            })()}
+                          </div>
+
+                          {/* Interactive Buttons */}
+                          {(() => {
+                            const components = Array.isArray(template.components) ? template.components : [];
+                            const buttonComponent = components.find((c: any) => c.type === 'BUTTONS');
+                            if (buttonComponent?.buttons && buttonComponent.buttons.length > 0) {
+                              return (
+                                <div className="border-t border-green-200 bg-green-50 p-3">
+                                  <div className="space-y-2">
+                                    {buttonComponent.buttons.map((button: any, index: number) => (
+                                      <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-green-200">
+                                        <div className="flex items-center gap-2">
+                                          {button.type === 'URL' && <i className="fas fa-external-link-alt text-blue-600 text-xs"></i>}
+                                          {button.type === 'PHONE_NUMBER' && <i className="fas fa-phone text-green-600 text-xs"></i>}
+                                          {button.type === 'QUICK_REPLY' && <i className="fas fa-reply text-green-600 text-xs"></i>}
+                                          <span className="text-sm font-medium text-slate-700">{button.text}</span>
+                                        </div>
+                                        <span className="text-xs text-slate-400 uppercase">{button.type}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            }
+                          })()}
+
+                          {/* Template Metadata */}
+                          <div className="px-4 py-2 bg-slate-50 border-t border-slate-200">
+                            <div className="flex items-center justify-between text-xs text-slate-500">
+                              <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-1">
                                   <i className="fas fa-language"></i>
                                   <span>{template.language.toUpperCase()}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  <i className="fas fa-clock"></i>
-                                  <span>Template message</span>
+                                  <i className="fas fa-tag"></i>
+                                  <span className="capitalize">{template.category}</span>
                                 </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <i className={`fas ${template.status === 'approved' ? 'fa-check-circle text-green-500' : 
+                                  template.status === 'pending' ? 'fa-clock text-yellow-500' : 'fa-times-circle text-red-500'}`}></i>
+                                <span className="capitalize">{template.status}</span>
                               </div>
                             </div>
                           </div>

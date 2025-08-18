@@ -35,6 +35,13 @@ export default function Chat() {
       refetchMessages();
     });
 
+    // Handle bulk message updates
+    websocketManager.onMessage('messages_updated', (messages: Message[]) => {
+      console.log('Received bulk message updates via WebSocket:', messages.length);
+      setRealtimeMessages(messages);
+      refetchMessages();
+    });
+
     // Check connection status periodically
     const connectionCheck = setInterval(() => {
       setIsConnected(websocketManager.isConnected());

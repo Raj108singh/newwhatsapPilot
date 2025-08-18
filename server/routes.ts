@@ -198,15 +198,21 @@ class WhatsAppService {
         const result = await this.sendMessage(message);
         results.push({ recipient, success: true, result });
 
-        // Store message in database
-        await storage.createMessage({
+        // Store complete template message in database  
+        const storedMessage = await storage.createMessage({
           phoneNumber: recipient,
-          content: `Template: ${template.name}`,
+          content: template.name,
           direction: 'outbound',
           messageType: 'template',
           status: 'sent',
           templateId: template.id,
+          templateData: template.components,
+          buttons: this.extractButtons(template.components),
+          mediaUrl: this.extractMediaUrl(template.components),
         });
+
+        // Note: Broadcasting will be handled by the route handler
+        console.log('Template message stored:', storedMessage.id);
 
       } catch (error) {
         console.error(`Failed to send message to ${recipient}:`, error);
@@ -215,6 +221,98 @@ class WhatsAppService {
     }
 
     return results;
+  }
+
+  // Helper method to extract buttons from template components
+  extractButtons(components: any[]): any[] {
+    if (!components) return [];
+    
+    const buttonComponent = components.find(c => c.type === 'BUTTONS');
+    return buttonComponent ? buttonComponent.buttons : [];
+  }
+
+  // Helper method to extract media URL from template components  
+  extractMediaUrl(components: any[]): string | null {
+    if (!components) return null;
+    
+    const headerComponent = components.find(c => c.type === 'HEADER');
+    if (headerComponent && headerComponent.format === 'IMAGE') {
+      return headerComponent.example?.header_handle?.[0] || null;
+    }
+    return null;
+  }
+
+  // Enhanced method to send template with full components
+  async sendTemplateMessage(recipient: string, template: any, parameters: any[] = []): Promise<any> {
+    await this.updateCredentials();
+
+    // Build complete template message with all components
+    const templateMessage: WhatsAppMessage = {
+      messaging_product: 'whatsapp',
+      to: recipient,
+      type: 'template',
+      template: {
+        name: template.name,
+        language: {
+          code: template.language,
+        },
+        components: this.buildTemplateComponents(template.components, parameters),
+      },
+    };
+
+    return await this.sendMessage(templateMessage);
+  }
+
+  // Build template components with proper structure for WhatsApp API
+  buildTemplateComponents(templateComponents: any[], parameters: any[] = []): any[] {
+    if (!templateComponents) return [];
+
+    const components = [];
+
+    templateComponents.forEach((component: any) => {
+      switch (component.type) {
+        case 'HEADER':
+          if (component.format === 'TEXT' && parameters.length > 0) {
+            components.push({
+              type: 'header',
+              parameters: [{ type: 'text', text: parameters[0] || '' }]
+            });
+          } else if (component.format === 'IMAGE') {
+            components.push({
+              type: 'header',
+              parameters: [{ type: 'image', image: { link: component.example?.header_handle?.[0] || '' } }]
+            });
+          }
+          break;
+
+        case 'BODY':
+          if (parameters.length > 0) {
+            components.push({
+              type: 'body',
+              parameters: parameters.map((param, index) => ({ type: 'text', text: param }))
+            });
+          }
+          break;
+
+        case 'BUTTONS':
+          // For button templates, we need to handle button parameters
+          if (component.buttons) {
+            component.buttons.forEach((button: any, index: number) => {
+              if (button.type === 'URL' && parameters[index]) {
+                components.push({
+                  type: 'button',
+                  sub_type: 'url',
+                  index: index,
+                  parameters: [{ type: 'text', text: parameters[index] }]
+                });
+              }
+            });
+          }
+          break;
+      }
+    });
+
+    return components;
   }
 }
 
@@ -565,6 +663,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sentCount: successCount,
             deliveredCount: successCount, // Assume sent = delivered for now
             failedCount,
+            completedAt: new Date(),
+          });
+
+          // Broadcast new messages to all connected clients for real-time updates
+          broadcastMessage({
+            type: 'messages_updated',
+            data: 'refresh',
           });
 
           // Broadcast campaign completion

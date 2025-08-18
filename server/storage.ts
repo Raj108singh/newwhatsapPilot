@@ -179,6 +179,9 @@ export class MemStorage implements IStorage {
       status: insertMessage.status || 'sent',
       messageType: insertMessage.messageType || 'text',
       templateId: insertMessage.templateId || null,
+      templateData: insertMessage.templateData || null,
+      mediaUrl: insertMessage.mediaUrl || null,
+      buttons: insertMessage.buttons || null,
       createdAt: new Date(),
     };
     this.messages.set(id, message);
