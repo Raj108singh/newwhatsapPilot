@@ -715,7 +715,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { templateId, recipients, parameters = [], campaignName } = req.body;
 
+      console.log('Bulk message request received:', {
+        templateId,
+        recipients,
+        parameters,
+        campaignName,
+        user: req.user?.username || 'unknown'
+      });
+
       if (!templateId || !recipients || !Array.isArray(recipients)) {
+        console.log('Missing required fields in bulk message request');
         res.status(400).json({ error: 'Missing required fields: templateId, recipients' });
         return;
       }
@@ -737,8 +746,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Start sending messages in background
+      console.log('About to call sendBulkMessages...');
       whatsappService.sendBulkMessages(recipients, templateId, parameters)
         .then(async (results) => {
+          console.log('Bulk messages completed:', results);
           const successCount = results.filter(r => r.success).length;
           const failedCount = results.filter(r => !r.success).length;
 
@@ -766,6 +777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         })
         .catch(async (error) => {
+          console.error('Bulk messages failed:', error);
           await storage.updateCampaign(campaign.id, {
             status: 'failed',
           });
