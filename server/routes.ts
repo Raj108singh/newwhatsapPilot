@@ -699,6 +699,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Bulk messaging endpoint
   app.post('/api/send-bulk', authenticate, async (req: any, res) => {
+    console.log('=== BULK MESSAGE REQUEST RECEIVED ===');
+    console.log('Headers:', req.headers);
+    console.log('User:', req.user);
+    console.log('Request body:', req.body);
     try {
       const { templateId, recipients, parameters = [], campaignName } = req.body;
 
@@ -716,6 +720,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Get template details for logging
+      const template = await storage.getTemplate(templateId);
+      console.log('Template details:', {
+        name: template?.name,
+        language: template?.language,
+        components: template?.components
+      });
+
       // Create campaign
       const campaign = await storage.createCampaign({
         name: campaignName || `Campaign ${new Date().toISOString()}`,
@@ -725,6 +737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'running',
       });
 
+      console.log('Campaign created:', campaign.id);
       console.log('Starting bulk message sending:', { 
         templateId, 
         recipientsCount: recipients.length, 
@@ -750,6 +763,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Start sending messages in background
       console.log('About to call sendBulkMessages...');
+      console.log('WhatsApp service initialized, calling sendBulkMessages with:', {
+        recipients: recipients,
+        templateId: templateId,
+        parameters: parameters
+      });
+      
       whatsappService.sendBulkMessages(recipients, templateId, parameters)
         .then(async (results) => {
           console.log('Bulk messages completed:', results);
