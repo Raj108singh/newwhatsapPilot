@@ -190,14 +190,11 @@ class WhatsAppService {
             language: {
               code: template.language,
             },
-            components: parameters.length > 0 ? [
-              {
-                type: 'body',
-                parameters: parameters.map(param => ({ type: 'text', text: param }))
-              }
-            ] : undefined,
+            components: this.buildTemplateComponents(template.components, parameters),
           },
         };
+
+        console.log('Sending template message:', JSON.stringify(message, null, 2));
 
         const result = await this.sendMessage(message);
         results.push({ recipient, success: true, result });
@@ -224,6 +221,20 @@ class WhatsAppService {
       } catch (error) {
         console.error(`Failed to send message to ${recipient}:`, error);
         results.push({ recipient, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        
+        // Store failed message for tracking
+        try {
+          await storage.createMessage({
+            phoneNumber: recipient,
+            content: `Failed to send template: ${template.name}`,
+            direction: 'outbound',
+            messageType: 'template',
+            status: 'failed',
+            templateId: template.id,
+          });
+        } catch (storeError) {
+          console.error('Failed to store failed message:', storeError);
+        }
       }
     }
 
@@ -716,6 +727,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recipients,
         totalRecipients: recipients.length,
         status: 'running',
+      });
+
+      console.log('Starting bulk message sending:', { 
+        templateId, 
+        recipientsCount: recipients.length, 
+        parametersCount: parameters.length,
+        parameters: parameters 
       });
 
       // Start sending messages in background
