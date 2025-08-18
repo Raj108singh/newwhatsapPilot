@@ -414,5 +414,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Settings endpoint (informational only - Replit handles actual env vars)
+  app.get('/api/settings', async (req, res) => {
+    try {
+      const settings = {
+        whatsappConfigured: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID),
+        webhookUrl: `${req.protocol}://${req.get('host')}/api/webhook`,
+        businessName: 'WhatsApp Pro Business',
+        timezone: 'UTC',
+      };
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+  });
+
+  app.post('/api/settings', async (req, res) => {
+    try {
+      // In production, settings would be updated via environment variables
+      // For now, we just acknowledge the request
+      res.json({ 
+        success: true, 
+        message: 'Settings update request received. Please update environment variables in Replit Secrets.' 
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update settings' });
+    }
+  });
+
   return httpServer;
 }

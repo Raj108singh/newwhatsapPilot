@@ -8,6 +8,9 @@ import Dashboard from "@/pages/dashboard";
 import BulkMessage from "@/pages/bulk-message";
 import Chat from "@/pages/chat";
 import Templates from "@/pages/templates";
+import Contacts from "@/pages/contacts";
+import Analytics from "@/pages/analytics";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +20,9 @@ function Router() {
       <Route path="/bulk-message" component={BulkMessage} />
       <Route path="/chat" component={Chat} />
       <Route path="/templates" component={Templates} />
+      <Route path="/contacts" component={Contacts} />
+      <Route path="/analytics" component={Analytics} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
