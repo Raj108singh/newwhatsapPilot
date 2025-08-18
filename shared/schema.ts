@@ -206,3 +206,12 @@ export type UserSession = typeof userSessions.$inferSelect;
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
 
 export type LoginCredentials = z.infer<typeof loginSchema>;
+
+// Auth User type for authentication responses
+export interface AuthUser {
+  id: string;
+  username: string;
+  name: string;
+  role: string;
+  email: string;
+}

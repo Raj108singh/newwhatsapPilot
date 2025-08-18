@@ -26,8 +26,10 @@ export default function BulkMessage() {
 
   const stopCampaignMutation = useMutation({
     mutationFn: async (campaignId: string) => {
-      const response = await apiRequest("POST", `/api/campaigns/${campaignId}/stop`);
-      return response.json();
+      const response = await apiRequest(`/api/campaigns/${campaignId}/stop`, {
+        method: "POST"
+      });
+      return response;
     },
     onSuccess: () => {
       toast({
