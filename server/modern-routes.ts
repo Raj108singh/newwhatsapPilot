@@ -325,7 +325,8 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       // Check WhatsApp configuration
       const whatsappConfigured = !!(
         settingsMap.whatsapp_token && 
-        settingsMap.whatsapp_phone_number_id
+        settingsMap.whatsapp_phone_number_id &&
+        settingsMap.whatsapp_business_account_id
       );
 
       res.json({
@@ -343,12 +344,19 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       const updates = req.body;
       
       for (const [key, value] of Object.entries(updates)) {
-        const category = key.startsWith('whatsapp_') ? 'whatsapp' : 
-                        key.startsWith('company_') ? 'branding' : 'general';
-        const isEncrypted = key.includes('token') || key.includes('secret');
+        // Handle WhatsApp API settings with proper key mapping
+        let settingKey = key;
+        if (key === 'token') settingKey = 'whatsapp_token';
+        if (key === 'phoneNumberId') settingKey = 'whatsapp_phone_number_id';
+        if (key === 'verifyToken') settingKey = 'whatsapp_verify_token';
+        if (key === 'businessAccountId') settingKey = 'whatsapp_business_account_id';
+        
+        const category = settingKey.startsWith('whatsapp_') ? 'whatsapp' : 
+                        settingKey.startsWith('company_') ? 'branding' : 'general';
+        const isEncrypted = settingKey.includes('token') || settingKey.includes('secret');
         
         await storage.setSetting({
-          key,
+          key: settingKey,
           value: value as any,
           category,
           isEncrypted,
@@ -499,9 +507,20 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       const phoneNumberIdSetting = await storage.getSetting('whatsapp_phone_number_id');
       const businessAccountIdSetting = await storage.getSetting('whatsapp_business_account_id');
       
+      console.log('Template refresh credentials check:', {
+        token: tokenSetting?.value ? 'Present' : 'Missing',
+        phoneNumberId: phoneNumberIdSetting?.value ? 'Present' : 'Missing',
+        businessAccountId: businessAccountIdSetting?.value ? 'Present' : 'Missing'
+      });
+      
       if (!tokenSetting?.value || !phoneNumberIdSetting?.value || !businessAccountIdSetting?.value) {
         return res.status(400).json({ 
-          error: 'WhatsApp credentials not configured. Please add your WhatsApp Token, Phone Number ID, and Business Account ID in Settings.' 
+          error: 'WhatsApp credentials not configured. Please add your WhatsApp Token, Phone Number ID, and Business Account ID in Settings.',
+          debug: {
+            token: tokenSetting?.value ? 'Present' : 'Missing',
+            phoneNumberId: phoneNumberIdSetting?.value ? 'Present' : 'Missing', 
+            businessAccountId: businessAccountIdSetting?.value ? 'Present' : 'Missing'
+          }
         });
       }
 

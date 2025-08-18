@@ -128,6 +128,14 @@ export default function Settings() {
         description: "WhatsApp settings saved successfully!",
       });
       
+      // Reload settings to update the status
+      try {
+        const updatedSettings = await apiRequest("/api/settings");
+        setCurrentSettings(updatedSettings);
+      } catch (error) {
+        console.error("Failed to reload settings:", error);
+      }
+      
       // Clear the form for security
       setWhatsappSettings({
         token: "",
