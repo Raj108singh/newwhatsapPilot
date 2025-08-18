@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStatus } from "@/hooks/useAuth";
+import { changePasswordSchema, updateProfileSchema, type ChangePassword, type UpdateProfile } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Settings() {
   const [whatsappSettings, setWhatsappSettings] = useState({
@@ -15,27 +23,47 @@ export default function Settings() {
   });
   const [generalSettings, setGeneralSettings] = useState({
     businessName: "",
-    timezone: ""
+    timezone: "",
+    company_logo: ""
   });
   const [currentSettings, setCurrentSettings] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingGeneral, setIsSavingGeneral] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuthStatus();
+
+  // Password change form
+  const passwordForm = useForm<ChangePassword>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  // Profile update form
+  const profileForm = useForm<UpdateProfile>({
+    resolver: zodResolver(updateProfileSchema),
+    defaultValues: {
+      name: user?.name || "",
+      email: user?.email || "",
+      username: user?.username || "",
+    },
+  });
 
   // Load current settings on component mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch("/api/settings");
-        if (response.ok) {
-          const settings = await response.json();
-          setCurrentSettings(settings);
-          setGeneralSettings({
-            businessName: settings.businessName || "",
-            timezone: settings.timezone || ""
-          });
-        }
+        const settings = await apiRequest("/api/settings");
+        setCurrentSettings(settings);
+        setGeneralSettings({
+          businessName: settings.businessName || "",
+          timezone: settings.timezone || "",
+          company_logo: settings.company_logo || ""
+        });
       } catch (error) {
         console.error("Failed to load settings:", error);
       } finally {
@@ -46,32 +74,34 @@ export default function Settings() {
     loadSettings();
   }, []);
 
-  const handleGeneralUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Update profile form when user data is available
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        name: user.name,
+        email: user.email,
+        username: user.username,
+      });
+    }
+  }, [user, profileForm]);
+
+  const handleGeneralUpdate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setIsSavingGeneral(true);
 
     try {
-      const response = await fetch("/api/settings/general", {
+      await apiRequest("/api/settings", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(generalSettings),
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "General Settings Saved",
-          description: "Your general settings have been updated successfully.",
-        });
-        
-        // Update current settings to reflect changes
-        setCurrentSettings((prev: any) => ({ ...prev, ...generalSettings }));
-      } else {
-        throw new Error(result.error || "Failed to save general settings");
-      }
+      toast({
+        title: "General Settings Saved",
+        description: "Your general settings have been updated successfully.",
+      });
+      
+      // Update current settings to reflect changes
+      setCurrentSettings((prev: any) => ({ ...prev, ...generalSettings }));
     } catch (error: any) {
       toast({
         title: "Save Failed",
@@ -88,43 +118,23 @@ export default function Settings() {
     setIsUpdating(true);
 
     try {
-      const response = await fetch("/api/settings", {
+      const response = await apiRequest("/api/settings", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(whatsappSettings),
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "Settings Saved",
-          description: "WhatsApp settings saved successfully! To activate these changes, please update your Replit Secrets with the same values.",
-        });
-        
-        // Show detailed instructions
-        setTimeout(() => {
-          toast({
-            title: "Next Steps",
-            description: `Update these Replit Secrets:
-• WHATSAPP_TOKEN: ${whatsappSettings.token ? '●●●●●●●●' : 'Not provided'}
-• WHATSAPP_PHONE_NUMBER_ID: ${whatsappSettings.phoneNumberId || 'Not provided'}  
-• WHATSAPP_VERIFY_TOKEN: ${whatsappSettings.verifyToken || 'Not provided'}`,
-          });
-        }, 2000);
-        
-        // Clear the form for security
-        setWhatsappSettings({
-          token: "",
-          phoneNumberId: "",
-          verifyToken: "",
-          businessAccountId: ""
-        });
-      } else {
-        throw new Error(result.error || "Failed to save settings");
-      }
+      toast({
+        title: "Settings Saved",
+        description: "WhatsApp settings saved successfully!",
+      });
+      
+      // Clear the form for security
+      setWhatsappSettings({
+        token: "",
+        phoneNumberId: "",
+        verifyToken: "",
+        businessAccountId: ""
+      });
     } catch (error: any) {
       toast({
         title: "Save Failed",
@@ -133,6 +143,60 @@ export default function Settings() {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handlePasswordChange = async (data: ChangePassword) => {
+    try {
+      await apiRequest("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+
+      toast({
+        title: "Password Changed",
+        description: "Your password has been updated successfully.",
+      });
+
+      passwordForm.reset();
+    } catch (error: any) {
+      toast({
+        title: "Password Change Failed",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleProfileUpdate = async (data: UpdateProfile) => {
+    try {
+      await apiRequest("/api/auth/update-profile", {
+        method: "POST", 
+        body: JSON.stringify(data),
+      });
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Profile Update Failed",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCompanyLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setGeneralSettings(prev => ({ ...prev, company_logo: result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -155,6 +219,7 @@ export default function Settings() {
             <TabsList>
               <TabsTrigger value="whatsapp">WhatsApp API</TabsTrigger>
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="admin">Admin</TabsTrigger>
               <TabsTrigger value="notifications">Notifications</TabsTrigger>
             </TabsList>
 
@@ -284,6 +349,175 @@ export default function Settings() {
                         </div>
                       </>
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="admin" className="space-y-6">
+              {/* User Profile Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Profile</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-4 mb-6">
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage src={generalSettings.company_logo} alt="Profile" />
+                      <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="text-lg font-medium">{user?.name}</h3>
+                      <p className="text-sm text-muted-foreground">{user?.email}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{user?.role} User</p>
+                    </div>
+                  </div>
+
+                  <Form {...profileForm}>
+                    <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                      <FormField
+                        control={profileForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter your full name" data-testid="input-profile-name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={profileForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email Address</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="Enter your email" data-testid="input-profile-email" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={profileForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter your username" data-testid="input-profile-username" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" disabled={profileForm.formState.isSubmitting} data-testid="button-update-profile">
+                        {profileForm.formState.isSubmitting ? "Updating..." : "Update Profile"}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+
+              {/* Change Password Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Change Password</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Form {...passwordForm}>
+                    <form onSubmit={passwordForm.handleSubmit(handlePasswordChange)} className="space-y-4">
+                      <FormField
+                        control={passwordForm.control}
+                        name="currentPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Current Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Enter current password" data-testid="input-current-password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={passwordForm.control}
+                        name="newPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Enter new password" data-testid="input-new-password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={passwordForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm New Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Confirm new password" data-testid="input-confirm-password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" disabled={passwordForm.formState.isSubmitting} data-testid="button-change-password">
+                        {passwordForm.formState.isSubmitting ? "Changing..." : "Change Password"}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+
+              {/* Company Logo Upload Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Company Logo</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {generalSettings.company_logo && (
+                      <div className="flex items-center space-x-4">
+                        <img 
+                          src={generalSettings.company_logo} 
+                          alt="Company Logo" 
+                          className="w-16 h-16 object-contain border rounded"
+                        />
+                        <div>
+                          <p className="text-sm font-medium">Current Logo</p>
+                          <p className="text-xs text-muted-foreground">Logo is uploaded and ready</p>
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <Label htmlFor="company-logo">Upload New Logo</Label>
+                      <Input
+                        id="company-logo"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCompanyLogoUpload}
+                        className="mt-1"
+                        data-testid="input-company-logo"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Supported formats: JPG, PNG, GIF. Max size: 2MB
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => handleGeneralUpdate()}
+                      disabled={isSavingGeneral || !generalSettings.company_logo}
+                      data-testid="button-save-logo"
+                    >
+                      {isSavingGeneral ? "Saving..." : "Save Logo"}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

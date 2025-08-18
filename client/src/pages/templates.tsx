@@ -39,8 +39,10 @@ export default function Templates() {
 
   const refreshTemplatesMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/templates/refresh");
-      return response.json();
+      const response = await apiRequest("/api/templates/refresh", {
+        method: "POST"
+      });
+      return response;
     },
     onSuccess: (data) => {
       toast({
@@ -60,7 +62,9 @@ export default function Templates() {
 
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/templates/${id}`);
+      await apiRequest(`/api/templates/${id}`, {
+        method: "DELETE"
+      });
     },
     onSuccess: () => {
       toast({
@@ -80,8 +84,10 @@ export default function Templates() {
 
   const handleCreateTemplate = async (templateData: any) => {
     try {
-      const response = await apiRequest("POST", "/api/templates", templateData);
-      const result = await response.json();
+      const result = await apiRequest("/api/templates", {
+        method: "POST",
+        body: JSON.stringify(templateData)
+      });
       
       toast({
         title: "Template Created",

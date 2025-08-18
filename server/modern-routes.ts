@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { authService } from "./auth";
 import { 
   insertTemplateSchema, insertMessageSchema, insertCampaignSchema, insertContactSchema, insertSettingSchema,
-  insertAutoReplyRuleSchema, insertConversationSchema, loginSchema 
+  insertAutoReplyRuleSchema, insertConversationSchema, loginSchema, changePasswordSchema, updateProfileSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -343,7 +343,8 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       const updates = req.body;
       
       for (const [key, value] of Object.entries(updates)) {
-        const category = key.startsWith('whatsapp_') ? 'whatsapp' : 'general';
+        const category = key.startsWith('whatsapp_') ? 'whatsapp' : 
+                        key.startsWith('company_') ? 'branding' : 'general';
         const isEncrypted = key.includes('token') || key.includes('secret');
         
         await storage.setSetting({
@@ -357,6 +358,72 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Settings updated successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  // Change Password API
+  app.post('/api/auth/change-password', authenticate, async (req: any, res) => {
+    try {
+      const passwordData = changePasswordSchema.parse(req.body);
+      const user = req.user;
+      
+      // Verify current password
+      const isCurrentPasswordValid = await authService.verifyPasswordByUsername(user.username, passwordData.currentPassword);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+      
+      // Update password
+      await authService.updateUserPassword(user.id, passwordData.newPassword);
+      
+      res.json({ success: true, message: "Password updated successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid password data", details: error.errors });
+      } else {
+        console.error('Password change error:', error);
+        res.status(500).json({ error: "Failed to change password" });
+      }
+    }
+  });
+
+  // Update Profile API
+  app.post('/api/auth/update-profile', authenticate, async (req: any, res) => {
+    try {
+      const profileData = updateProfileSchema.parse(req.body);
+      const user = req.user;
+      
+      // Check if username or email already exists (excluding current user)
+      const existingUser = await authService.findUserByUsernameOrEmail(profileData.username, profileData.email);
+      if (existingUser && existingUser.id !== user.id) {
+        return res.status(400).json({ error: "Username or email already exists" });
+      }
+      
+      // Update profile
+      const updatedUser = await authService.updateUserProfile(user.id, profileData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: "Profile updated successfully",
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role
+        }
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid profile data", details: error.errors });
+      } else {
+        console.error('Profile update error:', error);
+        res.status(500).json({ error: "Failed to update profile" });
+      }
     }
   });
 
@@ -418,6 +485,65 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       res.json(templates);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+
+  // Template refresh from WhatsApp API
+  app.post('/api/templates/refresh', authenticate, async (req, res) => {
+    try {
+      // Update credentials from database first
+      await whatsappService.updateCredentials();
+      
+      // Check if credentials are configured
+      const tokenSetting = await storage.getSetting('whatsapp_token');
+      const phoneNumberIdSetting = await storage.getSetting('whatsapp_phone_number_id');
+      const businessAccountIdSetting = await storage.getSetting('whatsapp_business_account_id');
+      
+      if (!tokenSetting?.value || !phoneNumberIdSetting?.value || !businessAccountIdSetting?.value) {
+        return res.status(400).json({ 
+          error: 'WhatsApp credentials not configured. Please add your WhatsApp Token, Phone Number ID, and Business Account ID in Settings.' 
+        });
+      }
+
+      // Fetch templates using the business account ID
+      const templates = await whatsappService.getTemplates();
+      
+      // Transform and store templates locally
+      let savedCount = 0;
+      for (const template of templates) {
+        try {
+          const bodyComponent = template.components?.find((c: any) => c.type === 'BODY');
+          
+          await storage.createTemplate({
+            name: template.name,
+            category: template.category?.toLowerCase() || 'marketing',
+            language: template.language || 'en',
+            status: template.status === 'APPROVED' ? 'approved' : 
+                   template.status === 'PENDING' ? 'pending' : 'rejected',
+            components: template.components || [
+              {
+                type: 'BODY',
+                text: bodyComponent?.text || `Template: ${template.name}`
+              }
+            ]
+          });
+          savedCount++;
+        } catch (error) {
+          // Template might already exist, continue with next
+          console.log(`Template ${template.name} already exists, skipping...`);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Successfully refreshed templates from WhatsApp Business API`,
+        totalFetched: templates.length,
+        newTemplatesSaved: savedCount,
+        templates: templates.length 
+      });
+    } catch (error) {
+      console.error('Template refresh error:', error);
+      res.status(500).json({ error: 'Failed to refresh templates from WhatsApp Business API' });
     }
   });
 

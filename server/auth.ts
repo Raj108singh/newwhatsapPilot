@@ -32,6 +32,13 @@ export class AuthService {
     return await bcrypt.compare(password, hashedPassword);
   }
 
+  // Verify password by username (for current password verification)
+  async verifyPasswordByUsername(username: string, password: string): Promise<boolean> {
+    const user = await storage.getUserByUsername(username);
+    if (!user) return false;
+    return await bcrypt.compare(password, user.password);
+  }
+
   // Generate JWT token
   generateToken(user: User): string {
     const payload = {
@@ -176,6 +183,35 @@ export class AuthService {
     } catch (error) {
       console.error("Logout error:", error);
       return false;
+    }
+  }
+
+  // Update user password
+  async updateUserPassword(userId: string, newPassword: string): Promise<void> {
+    const hashedPassword = await this.hashPassword(newPassword);
+    await storage.updateUser(userId, { password: hashedPassword });
+  }
+
+  // Update user profile
+  async updateUserProfile(userId: string, profileData: { name: string; email: string; username: string }): Promise<User | null> {
+    const updatedUser = await storage.updateUser(userId, profileData);
+    return updatedUser || null;
+  }
+
+  // Find user by username or email (for checking duplicates)
+  async findUserByUsernameOrEmail(username: string, email: string): Promise<User | null> {
+    try {
+      const userByUsername = await storage.getUserByUsername(username);
+      if (userByUsername) return userByUsername;
+
+      // Check by email using getAllUsers since getUserByEmail doesn't exist
+      const allUsers = await storage.getUsers();
+      const userByEmail = allUsers.find(u => u.email === email);
+      if (userByEmail) return userByEmail;
+
+      return null;
+    } catch (error) {
+      return null;
     }
   }
 
