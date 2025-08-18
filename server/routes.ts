@@ -93,7 +93,7 @@ class WhatsAppService {
         });
 
       } catch (error) {
-        results.push({ recipient, success: false, error: error.message });
+        results.push({ recipient, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
 

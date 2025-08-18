@@ -230,7 +230,7 @@ export default function Templates() {
         {templates.length > 0 ? (
           <div className="grid gap-6">
             {templates.map((template) => {
-              const bodyComponent = template.components?.find(c => c.type === "BODY");
+              const bodyComponent = Array.isArray(template.components) ? template.components.find((c: any) => c.type === "BODY") : null;
               
               return (
                 <Card key={template.id} data-testid={`template-card-${template.id}`}>

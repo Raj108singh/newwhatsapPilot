@@ -122,6 +122,8 @@ export class MemStorage implements IStorage {
     const template: Template = {
       ...insertTemplate,
       id,
+      status: insertTemplate.status || 'pending',
+      language: insertTemplate.language || 'en',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -162,6 +164,9 @@ export class MemStorage implements IStorage {
     const message: Message = {
       ...insertMessage,
       id,
+      status: insertMessage.status || 'sent',
+      messageType: insertMessage.messageType || 'text',
+      templateId: insertMessage.templateId || null,
       createdAt: new Date(),
     };
     this.messages.set(id, message);
@@ -190,6 +195,11 @@ export class MemStorage implements IStorage {
     const campaign: Campaign = {
       ...insertCampaign,
       id,
+      status: insertCampaign.status || 'pending',
+      sentCount: insertCampaign.sentCount || 0,
+      deliveredCount: insertCampaign.deliveredCount || 0,
+      failedCount: insertCampaign.failedCount || 0,
+      scheduledAt: insertCampaign.scheduledAt || null,
       createdAt: new Date(),
       completedAt: null,
     };
@@ -223,6 +233,9 @@ export class MemStorage implements IStorage {
     const contact: Contact = {
       ...insertContact,
       id,
+      name: insertContact.name || null,
+      email: insertContact.email || null,
+      tags: insertContact.tags || null,
       createdAt: new Date(),
     };
     this.contacts.set(id, contact);

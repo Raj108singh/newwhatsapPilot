@@ -100,7 +100,7 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
     if (!bodyComponent || !bodyComponent.text) return [];
 
     const paramMatches = bodyComponent.text.match(/\{\{(\d+)\}\}/g);
-    return paramMatches ? paramMatches.map((match, index) => ({ 
+    return paramMatches ? paramMatches.map((match: string, index: number) => ({ 
       placeholder: match, 
       index: index + 1 
     })) : [];
@@ -200,7 +200,7 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
             <div>
               <Label>Template Parameters</Label>
               <div className="space-y-3">
-                {templateParams.map((param, index) => (
+                {templateParams.map((param: any, index: number) => (
                   <div key={param.placeholder}>
                     <Label className="block text-xs font-medium text-slate-600 mb-1">
                       {param.placeholder}
