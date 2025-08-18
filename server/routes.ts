@@ -135,12 +135,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
-  // Templates API
+  // Templates API - Fetch from WhatsApp Business API
   app.get('/api/templates', async (req, res) => {
     try {
-      const templates = await storage.getTemplates();
-      res.json(templates);
+      const whatsappToken = process.env.WHATSAPP_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+      if (!whatsappToken || !phoneNumberId) {
+        // Fallback to stored templates if no credentials
+        const templates = await storage.getTemplates();
+        return res.json(templates);
+      }
+
+      // Fetch templates from WhatsApp Business API
+      try {
+        const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/message_templates`, {
+          headers: {
+            'Authorization': `Bearer ${whatsappToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Transform WhatsApp API response to our schema
+          const whatsappTemplates = data.data?.map((template: any) => ({
+            id: template.id,
+            name: template.name,
+            category: template.category || 'marketing',
+            language: template.language || 'en_US',
+            status: template.status === 'APPROVED' ? 'approved' : 
+                   template.status === 'PENDING' ? 'pending' : 'rejected',
+            content: template.components?.find((c: any) => c.type === 'BODY')?.text || '',
+            createdAt: new Date(),
+          })) || [];
+
+          // Store fetched templates locally for future reference
+          for (const template of whatsappTemplates) {
+            try {
+              await storage.createTemplate(template);
+            } catch (error) {
+              // Template might already exist, ignore error
+            }
+          }
+
+          res.json(whatsappTemplates);
+        } else {
+          console.error('WhatsApp API error response:', await response.text());
+          // Fallback to stored templates
+          const templates = await storage.getTemplates();
+          res.json(templates);
+        }
+      } catch (apiError) {
+        console.error('WhatsApp API fetch error:', apiError);
+        // Fallback to stored templates
+        const templates = await storage.getTemplates();
+        res.json(templates);
+      }
     } catch (error) {
+      console.error('Templates endpoint error:', error);
       res.status(500).json({ error: 'Failed to fetch templates' });
     }
   });
@@ -148,14 +202,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/templates', async (req, res) => {
     try {
       const templateData = insertTemplateSchema.parse(req.body);
-      const template = await storage.createTemplate(templateData);
-      res.json(template);
+      
+      // If we have WhatsApp credentials, create template via API
+      const whatsappToken = process.env.WHATSAPP_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      
+      if (whatsappToken && phoneNumberId) {
+        try {
+          // Create template via WhatsApp Business API
+          const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/message_templates`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${whatsappToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: templateData.name,
+              category: templateData.category.toUpperCase(),
+              language: templateData.language,
+              components: [
+                {
+                  type: 'BODY',
+                  text: (templateData.components as any)?.[0]?.text || templateData.name,
+                }
+              ],
+            }),
+          });
+
+          if (response.ok) {
+            const apiResponse = await response.json();
+            
+            // Store locally with API response data
+            const template = await storage.createTemplate({
+              name: templateData.name,
+              category: templateData.category,
+              language: templateData.language,
+              components: templateData.components,
+              status: 'pending', // New templates start as pending
+            });
+            
+            res.json(template);
+          } else {
+            const errorData = await response.text();
+            console.error('WhatsApp template creation error:', errorData);
+            res.status(400).json({ 
+              error: 'Failed to create template in WhatsApp Business API',
+              details: errorData 
+            });
+          }
+        } catch (apiError) {
+          console.error('WhatsApp API error:', apiError);
+          res.status(500).json({ error: 'WhatsApp API connection failed' });
+        }
+      } else {
+        // No credentials, store locally only
+        const template = await storage.createTemplate(templateData);
+        res.json(template);
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: 'Invalid template data', details: error.errors });
       } else {
+        console.error('Template creation error:', error);
         res.status(500).json({ error: 'Failed to create template' });
       }
+    }
+  });
+
+  // Refresh templates from WhatsApp API
+  app.post('/api/templates/refresh', async (req, res) => {
+    try {
+      const whatsappToken = process.env.WHATSAPP_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+      if (!whatsappToken || !phoneNumberId) {
+        return res.status(400).json({ error: 'WhatsApp credentials not configured' });
+      }
+
+      const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/message_templates`, {
+        headers: {
+          'Authorization': `Bearer ${whatsappToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const templates = data.data || [];
+        
+        res.json({ 
+          success: true, 
+          message: `Refreshed ${templates.length} templates from WhatsApp Business API`,
+          templates: templates.length 
+        });
+      } else {
+        const errorData = await response.text();
+        res.status(400).json({ error: 'Failed to fetch templates from WhatsApp', details: errorData });
+      }
+    } catch (error) {
+      console.error('Template refresh error:', error);
+      res.status(500).json({ error: 'Failed to refresh templates' });
     }
   });
 

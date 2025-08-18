@@ -50,7 +50,7 @@ export default function Templates() {
           {
             type: "BODY",
             text: bodyText,
-          },
+          }
         ],
       };
       const response = await apiRequest("POST", "/api/templates", template);
@@ -69,6 +69,27 @@ export default function Templates() {
       toast({
         title: "Failed to Create Template",
         description: error.message || "An error occurred while creating the template.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const refreshTemplatesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/templates/refresh");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Templates Refreshed",
+        description: `Successfully refreshed ${data.templates || 0} templates from your WhatsApp Business account.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Refresh Failed",
+        description: error.message || "Failed to refresh templates from WhatsApp Business API.",
         variant: "destructive",
       });
     },
@@ -118,13 +139,23 @@ export default function Templates() {
             <h1 className="text-2xl font-semibold text-slate-900">Templates</h1>
             <p className="text-sm text-slate-500">Manage your WhatsApp message templates</p>
           </div>
-          <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-create-template">
-                <i className="fas fa-plus mr-2"></i>
-                Create Template
-              </Button>
-            </DialogTrigger>
+          <div className="flex space-x-3">
+            <Button 
+              variant="outline"
+              onClick={() => refreshTemplatesMutation.mutate()}
+              disabled={refreshTemplatesMutation.isPending}
+              data-testid="button-refresh-templates"
+            >
+              <i className={`fas fa-sync ${refreshTemplatesMutation.isPending ? 'fa-spin' : ''} mr-2`}></i>
+              {refreshTemplatesMutation.isPending ? 'Refreshing...' : 'Refresh from WhatsApp'}
+            </Button>
+            <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-create-template">
+                  <i className="fas fa-plus mr-2"></i>
+                  Create Template
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Template</DialogTitle>
@@ -222,6 +253,7 @@ export default function Templates() {
               </Form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </header>
 
