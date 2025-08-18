@@ -1228,5 +1228,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // WhatsApp Webhook Endpoint for Meta Verification
+  app.get('/api/webhook', async (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    console.log('Webhook verification request:', { mode, token, challenge });
+
+    // Get verify token from database
+    const verifyTokenSetting = await storage.getSetting('whatsapp_verify_token');
+    const expectedToken = verifyTokenSetting?.value || 'secretwebhook';
+
+    console.log('Expected verify token:', expectedToken);
+
+    if (mode === 'subscribe' && token === expectedToken) {
+      console.log('Webhook verified successfully!');
+      res.status(200).send(challenge);
+    } else {
+      console.log('Webhook verification failed:', { 
+        mode, 
+        receivedToken: token, 
+        expectedToken,
+        tokenMatch: token === expectedToken 
+      });
+      res.status(403).send('Forbidden');
+    }
+  });
+
+  // WhatsApp Webhook for receiving messages
+  app.post('/api/webhook', async (req, res) => {
+    try {
+      console.log('Webhook payload received:', JSON.stringify(req.body, null, 2));
+
+      const body = req.body;
+
+      // Check if this is a WhatsApp message
+      if (body.object === 'whatsapp_business_account') {
+        body.entry?.forEach((entry: any) => {
+          entry.changes?.forEach((change: any) => {
+            if (change.field === 'messages') {
+              const messages = change.value.messages;
+              
+              messages?.forEach(async (message: any) => {
+                try {
+                  // Store incoming message
+                  await storage.createMessage({
+                    phoneNumber: message.from,
+                    content: message.text?.body || message.type || 'Media message',
+                    direction: 'inbound',
+                    messageType: message.type || 'text',
+                    status: 'received',
+                    whatsappMessageId: message.id,
+                  });
+
+                  console.log('Incoming message stored:', message.id);
+
+                  // Broadcast to connected clients
+                  broadcastMessage({
+                    type: 'new_message',
+                    data: {
+                      id: message.id,
+                      from: message.from,
+                      content: message.text?.body || 'Media message',
+                      direction: 'inbound',
+                      timestamp: new Date().toISOString(),
+                    },
+                  });
+                } catch (error) {
+                  console.error('Failed to store incoming message:', error);
+                }
+              });
+            }
+          });
+        });
+      }
+
+      res.status(200).send('EVENT_RECEIVED');
+    } catch (error) {
+      console.error('Webhook processing error:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
   return httpServer;
 }
