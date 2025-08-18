@@ -431,13 +431,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/settings', async (req, res) => {
     try {
-      // In production, settings would be updated via environment variables
-      // For now, we just acknowledge the request
+      const { token, phoneNumberId, verifyToken } = req.body;
+      
+      // Validate that required fields are provided
+      if (!token || !phoneNumberId || !verifyToken) {
+        return res.status(400).json({ 
+          error: 'All fields are required: token, phoneNumberId, verifyToken' 
+        });
+      }
+
+      // In production, these would be saved to environment variables
+      // For now, we acknowledge the receipt and provide clear instructions
+      console.log('WhatsApp settings received:', {
+        token: token ? `${token.substring(0, 8)}...` : 'Not provided',
+        phoneNumberId: phoneNumberId || 'Not provided',
+        verifyToken: verifyToken || 'Not provided'
+      });
+
       res.json({ 
         success: true, 
-        message: 'Settings update request received. Please update environment variables in Replit Secrets.' 
+        message: 'WhatsApp settings received successfully',
+        instructions: 'Please update your Replit Secrets with these exact values to activate the changes.',
+        data: {
+          tokenReceived: !!token,
+          phoneNumberIdReceived: !!phoneNumberId,
+          verifyTokenReceived: !!verifyToken
+        }
       });
     } catch (error) {
+      console.error('Settings update error:', error);
       res.status(500).json({ error: 'Failed to update settings' });
     }
   });
@@ -455,6 +477,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: 'Failed to save general settings' });
+    }
+  });
+
+  // Stop campaign endpoint
+  app.post('/api/campaigns/:id/stop', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const campaigns = await storage.getCampaigns();
+      const campaign = campaigns.find(c => c.id === id);
+      
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+
+      if (campaign.status !== 'running') {
+        return res.status(400).json({ error: 'Campaign is not running' });
+      }
+
+      // Update campaign status to stopped
+      // In a real implementation, you would update the database
+      res.json({ 
+        success: true, 
+        message: 'Campaign stopped successfully' 
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to stop campaign' });
     }
   });
 

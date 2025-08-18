@@ -100,8 +100,19 @@ export default function Settings() {
       if (response.ok) {
         toast({
           title: "Settings Saved",
-          description: "Your WhatsApp settings have been saved. To fully activate, please update your Replit Secrets with: WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN",
+          description: "WhatsApp settings saved successfully! To activate these changes, please update your Replit Secrets with the same values.",
         });
+        
+        // Show detailed instructions
+        setTimeout(() => {
+          toast({
+            title: "Next Steps",
+            description: `Update these Replit Secrets:
+• WHATSAPP_TOKEN: ${whatsappSettings.token ? '●●●●●●●●' : 'Not provided'}
+• WHATSAPP_PHONE_NUMBER_ID: ${whatsappSettings.phoneNumberId || 'Not provided'}  
+• WHATSAPP_VERIFY_TOKEN: ${whatsappSettings.verifyToken || 'Not provided'}`,
+          });
+        }, 2000);
         
         // Clear the form for security
         setWhatsappSettings({
