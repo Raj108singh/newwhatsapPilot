@@ -234,10 +234,16 @@ class WhatsAppService {
 
         // Store complete template message with actual content
         const bodyComponent = (template.components as any[])?.find((c: any) => c.type === 'BODY');
-        const actualContent = bodyComponent?.text || template.name;
+        const actualContent = bodyComponent?.text || `Template: ${template.name}`;
+        
+        console.log('Storing template message:', {
+          recipient,
+          content: actualContent,
+          templateName: template.name
+        });
         
         const storedMessage = await storage.createMessage({
-          phoneNumber: recipient,
+          phoneNumber: recipient.replace('+', ''), // Remove + for consistency
           content: actualContent,
           direction: 'outbound',
           messageType: 'template',
@@ -247,6 +253,8 @@ class WhatsAppService {
           buttons: this.extractButtons(template.components as any[]),
           mediaUrl: this.extractMediaUrl(template.components as any[]),
         });
+        
+        console.log('Template message stored with ID:', storedMessage.id);
 
         // Note: Broadcasting will be handled by the route handler
         console.log('Template message stored:', storedMessage.id);

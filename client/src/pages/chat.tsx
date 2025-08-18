@@ -105,29 +105,41 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200 px-6 py-4">
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+      {/* WhatsApp Business Header */}
+      <header className="bg-green-600 text-white px-6 py-3 shadow-lg">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Live Chat</h1>
-            <p className="text-sm text-slate-500">Real-time WhatsApp conversations</p>
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+              <i className="fab fa-whatsapp text-xl"></i>
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">WhatsApp Business</h1>
+              <p className="text-sm text-green-100">Professional messaging platform</p>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-            <span className="text-sm text-slate-600">
-              {isConnected ? 'Connected' : 'Disconnected'}
-            </span>
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-200 animate-pulse' : 'bg-red-300'}`}></div>
+              <span className="text-sm text-green-100">
+                {isConnected ? 'Online' : 'Offline'}
+              </span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - WhatsApp Business Style */}
       <div className="flex-1 flex overflow-hidden">
         {/* Chat List */}
-        <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
-          <div className="p-4 border-b border-slate-200">
-            <h3 className="font-semibold text-slate-900">Conversations</h3>
+        <div className="w-80 bg-white border-r border-slate-200 flex flex-col shadow-sm">
+          <div className="p-4 bg-slate-50 border-b border-slate-200">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900">Chats</h3>
+              <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                {phoneNumbers.length} active
+              </div>
+            </div>
           </div>
           
           <div className="flex-1 overflow-y-auto">
@@ -138,47 +150,64 @@ export default function Chat() {
                   .slice(-1)[0];
                 
                 const unreadCount = allMessages
-                  .filter(m => m.phoneNumber === phoneNumber && m.direction === 'inbound')
+                  .filter(m => m.phoneNumber === phoneNumber && m.direction === 'inbound' && m.status === 'received')
                   .length;
 
                 return (
                   <button
                     key={phoneNumber}
                     onClick={() => setSelectedPhoneNumber(phoneNumber)}
-                    className={`w-full p-4 border-b border-slate-100 text-left hover:bg-slate-50 transition-colors ${
-                      selectedPhoneNumber === phoneNumber ? 'bg-primary-50 border-l-4 border-l-primary-500' : ''
+                    className={`w-full p-4 hover:bg-slate-50 transition-colors border-b border-slate-100 text-left ${
+                      selectedPhoneNumber === phoneNumber ? 'bg-green-50 border-r-4 border-r-green-500' : ''
                     }`}
                     data-testid={`chat-${phoneNumber}`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
-                          <i className="fas fa-user text-slate-500 text-sm"></i>
-                        </div>
-                        <span className="font-medium text-slate-900">
-                          Contact {phoneNumber.slice(-4)}
-                        </span>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i className="fas fa-user text-white"></i>
                       </div>
-                      {unreadCount > 0 && (
-                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                          {unreadCount}
-                        </span>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="font-semibold text-slate-900 truncate">
+                            +{phoneNumber}
+                          </h4>
+                          {lastMessage && (
+                            <span className="text-xs text-slate-500">
+                              {new Date(lastMessage.createdAt || '').toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        {lastMessage && (
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-slate-600 truncate">
+                              {lastMessage.direction === 'outbound' && (
+                                <i className="fas fa-check text-green-500 mr-1"></i>
+                              )}
+                              {lastMessage.content || "Template message"}
+                            </p>
+                            {unreadCount > 0 && (
+                              <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center ml-2">
+                                {unreadCount}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-500 mb-1">{phoneNumber}</p>
-                    {lastMessage && (
-                      <p className="text-sm text-slate-600 truncate">
-                        {lastMessage.content}
-                      </p>
-                    )}
                   </button>
                 );
               })
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-500">
+              <div className="flex items-center justify-center h-full p-8">
                 <div className="text-center">
-                  <i className="fas fa-comments text-4xl mb-4 text-slate-300"></i>
-                  <p>No conversations yet</p>
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i className="fab fa-whatsapp text-2xl text-green-600"></i>
+                  </div>
+                  <h3 className="font-medium text-slate-900 mb-2">Welcome to WhatsApp Business</h3>
+                  <p className="text-sm text-slate-500">Start conversations with your customers</p>
                 </div>
               </div>
             )}
@@ -186,20 +215,32 @@ export default function Chat() {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col bg-slate-25">
           {selectedPhoneNumber ? (
             <>
-              {/* Chat Header */}
-              <div className="p-4 border-b border-slate-200 bg-white">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
-                    <i className="fas fa-user text-slate-500"></i>
+              {/* Chat Header - WhatsApp Style */}
+              <div className="p-4 border-b border-slate-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center">
+                      <i className="fas fa-user text-white"></i>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-900">
+                        +{selectedPhoneNumber}
+                      </h3>
+                      <p className="text-sm text-green-600">
+                        {isConnected ? 'online' : 'last seen recently'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900">
-                      Contact {selectedPhoneNumber.slice(-4)}
-                    </h3>
-                    <p className="text-sm text-slate-500">{selectedPhoneNumber}</p>
+                  <div className="flex items-center space-x-2">
+                    <button className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+                      <i className="fas fa-search text-slate-500"></i>
+                    </button>
+                    <button className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+                      <i className="fas fa-ellipsis-v text-slate-500"></i>
+                    </button>
                   </div>
                 </div>
               </div>
