@@ -42,6 +42,7 @@ export const messages = pgTable("messages", {
   isAutoReply: boolean("is_auto_reply").notNull().default(false),
   autoReplyTriggerId: varchar("auto_reply_trigger_id"), // Reference to auto reply trigger
   conversationId: varchar("conversation_id"), // Group messages by conversation
+  whatsappMessageId: text("whatsapp_message_id"), // WhatsApp's message ID for tracking
   createdAt: timestamp("created_at").defaultNow(),
 });
 

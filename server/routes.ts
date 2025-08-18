@@ -9,6 +9,19 @@ import {
 import { z } from "zod";
 import { authService } from "./auth";
 
+// Authentication middleware
+async function authenticate(req: any, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  const user = await authService.authenticate(authHeader);
+  
+  if (!user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  req.user = user;
+  next();
+}
+
 interface WhatsAppMessage {
   messaging_product: 'whatsapp';
   to: string;
@@ -197,7 +210,7 @@ class WhatsAppService {
             language: {
               code: template.language,
             },
-            components: this.buildTemplateComponents(template.components, parameters),
+            components: this.buildTemplateComponents(template.components as any[], parameters),
           },
         };
 
@@ -207,7 +220,7 @@ class WhatsAppService {
         results.push({ recipient, success: true, result });
 
         // Store complete template message with actual content
-        const bodyComponent = template.components?.find((c: any) => c.type === 'BODY');
+        const bodyComponent = (template.components as any[])?.find((c: any) => c.type === 'BODY');
         const actualContent = bodyComponent?.text || template.name;
         
         const storedMessage = await storage.createMessage({
@@ -217,9 +230,9 @@ class WhatsAppService {
           messageType: 'template',
           status: 'sent',
           templateId: template.id,
-          templateData: template.components,
-          buttons: this.extractButtons(template.components),
-          mediaUrl: this.extractMediaUrl(template.components),
+          templateData: template.components as any,
+          buttons: this.extractButtons(template.components as any[]),
+          mediaUrl: this.extractMediaUrl(template.components as any[]),
         });
 
         // Note: Broadcasting will be handled by the route handler
@@ -281,7 +294,7 @@ class WhatsAppService {
         language: {
           code: template.language,
         },
-        components: this.buildTemplateComponents(template.components, parameters),
+        components: this.buildTemplateComponents(template.components as any[], parameters),
       },
     };
 
@@ -349,53 +362,6 @@ class WhatsAppService {
       }
     });
     
-    return components;
-
-    const components = [];
-
-    templateComponents.forEach((component: any) => {
-      switch (component.type) {
-        case 'HEADER':
-          if (component.format === 'TEXT' && parameters.length > 0) {
-            components.push({
-              type: 'header',
-              parameters: [{ type: 'text', text: parameters[0] || '' }]
-            });
-          } else if (component.format === 'IMAGE') {
-            components.push({
-              type: 'header',
-              parameters: [{ type: 'image', image: { link: component.example?.header_handle?.[0] || '' } }]
-            });
-          }
-          break;
-
-        case 'BODY':
-          if (parameters.length > 0) {
-            components.push({
-              type: 'body',
-              parameters: parameters.map((param, index) => ({ type: 'text', text: param }))
-            });
-          }
-          break;
-
-        case 'BUTTONS':
-          // For button templates, we need to handle button parameters
-          if (component.buttons) {
-            component.buttons.forEach((button: any, index: number) => {
-              if (button.type === 'URL' && parameters[index]) {
-                components.push({
-                  type: 'button',
-                  sub_type: 'url',
-                  index: index,
-                  parameters: [{ type: 'text', text: parameters[index] }]
-                });
-              }
-            });
-          }
-          break;
-      }
-    });
-
     return components;
   }
 }
@@ -1130,7 +1096,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WhatsApp Configuration Test Endpoint  
   app.get('/api/test-whatsapp', async (req, res) => {
     try {
-      const results = {
+      const results: {
+        credentials: any;
+        apiTest: any;
+        error: any;
+      } = {
         credentials: {},
         apiTest: null,
         error: null
