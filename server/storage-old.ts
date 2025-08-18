@@ -6,6 +6,7 @@ import {
   type UserSession, type InsertUserSession
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
 import { eq, desc, and, or, sql } from "drizzle-orm";
 
 export interface IStorage {
@@ -79,9 +80,6 @@ export class MemStorage implements IStorage {
   private campaigns: Map<string, Campaign>;
   private contacts: Map<string, Contact>;
   private settings: Map<string, Setting>;
-  private conversations: Map<string, Conversation>;
-  private autoReplyRules: Map<string, AutoReplyRule>;
-  private userSessions: Map<string, UserSession>;
 
   constructor() {
     this.users = new Map();
@@ -90,9 +88,8 @@ export class MemStorage implements IStorage {
     this.campaigns = new Map();
     this.contacts = new Map();
     this.settings = new Map();
-    this.conversations = new Map();
-    this.autoReplyRules = new Map();
-    this.userSessions = new Map();
+
+    // Initialize with sample data
     this.initSampleData();
   }
 
@@ -114,16 +111,35 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
     };
 
+    const orderTemplate: Template = {
+      id: randomUUID(),
+      name: "Order Confirmation",
+      category: "transactional",
+      language: "en",
+      status: "approved",
+      components: [
+        {
+          type: "BODY",
+          text: "Your order #{{1}} has been confirmed! Expected delivery: {{2}}. Track your order: {{3}}"
+        }
+      ],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
     this.templates.set(welcomeTemplate.id, welcomeTemplate);
+    this.templates.set(orderTemplate.id, orderTemplate);
   }
 
-  // Users & Authentication
+  // Users
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username,
+    );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -131,48 +147,6 @@ export class MemStorage implements IStorage {
     const user: User = { ...insertUser, id };
     this.users.set(id, user);
     return user;
-  }
-
-  async updateUser(id: string, userData: Partial<InsertUser>): Promise<User | undefined> {
-    const existing = this.users.get(id);
-    if (!existing) return undefined;
-
-    const updated: User = { ...existing, ...userData };
-    this.users.set(id, updated);
-    return updated;
-  }
-
-  // User Sessions
-  async createUserSession(session: InsertUserSession): Promise<UserSession> {
-    const id = randomUUID();
-    const userSession: UserSession = { ...session, id };
-    this.userSessions.set(session.token, userSession);
-    return userSession;
-  }
-
-  async getUserSession(token: string): Promise<UserSession | undefined> {
-    const session = this.userSessions.get(token);
-    return session?.isActive ? session : undefined;
-  }
-
-  async deleteUserSession(token: string): Promise<boolean> {
-    const session = this.userSessions.get(token);
-    if (session) {
-      session.isActive = false;
-      return true;
-    }
-    return false;
-  }
-
-  async deleteUserSessions(userId: string): Promise<boolean> {
-    let updated = false;
-    for (const session of this.userSessions.values()) {
-      if (session.userId === userId && session.isActive) {
-        session.isActive = false;
-        updated = true;
-      }
-    }
-    return updated;
   }
 
   // Templates
@@ -189,6 +163,8 @@ export class MemStorage implements IStorage {
     const template: Template = {
       ...insertTemplate,
       id,
+      status: insertTemplate.status || 'pending',
+      language: insertTemplate.language || 'en',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -196,11 +172,15 @@ export class MemStorage implements IStorage {
     return template;
   }
 
-  async updateTemplate(id: string, templateData: Partial<InsertTemplate>): Promise<Template | undefined> {
+  async updateTemplate(id: string, templateUpdate: Partial<InsertTemplate>): Promise<Template | undefined> {
     const existing = this.templates.get(id);
     if (!existing) return undefined;
 
-    const updated: Template = { ...existing, ...templateData, updatedAt: new Date() };
+    const updated: Template = {
+      ...existing,
+      ...templateUpdate,
+      updatedAt: new Date(),
+    };
     this.templates.set(id, updated);
     return updated;
   }
@@ -211,7 +191,9 @@ export class MemStorage implements IStorage {
 
   // Messages
   async getMessages(): Promise<Message[]> {
-    return Array.from(this.messages.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return Array.from(this.messages.values()).sort((a, b) => 
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
   }
 
   async getMessage(id: string): Promise<Message | undefined> {
@@ -223,105 +205,29 @@ export class MemStorage implements IStorage {
     const message: Message = {
       ...insertMessage,
       id,
+      status: insertMessage.status || 'sent',
+      messageType: insertMessage.messageType || 'text',
+      templateId: insertMessage.templateId || null,
+      templateData: insertMessage.templateData || null,
+      mediaUrl: insertMessage.mediaUrl || null,
+      buttons: insertMessage.buttons || null,
       createdAt: new Date(),
-      statusUpdatedAt: new Date(),
     };
     this.messages.set(id, message);
     return message;
   }
 
-  async updateMessage(id: string, messageData: Partial<InsertMessage>): Promise<Message | undefined> {
-    const existing = this.messages.get(id);
-    if (!existing) return undefined;
-
-    const updated: Message = { ...existing, ...messageData, statusUpdatedAt: new Date() };
-    this.messages.set(id, updated);
-    return updated;
-  }
-
   async getMessagesByPhoneNumber(phoneNumber: string): Promise<Message[]> {
-    return Array.from(this.messages.values()).filter(m => m.phoneNumber === phoneNumber);
-  }
-
-  async getMessagesByConversation(conversationId: string): Promise<Message[]> {
-    return Array.from(this.messages.values()).filter(m => m.conversationId === conversationId);
-  }
-
-  // Conversations
-  async getConversations(): Promise<Conversation[]> {
-    return Array.from(this.conversations.values());
-  }
-
-  async getConversation(id: string): Promise<Conversation | undefined> {
-    return this.conversations.get(id);
-  }
-
-  async getConversationByPhoneNumber(phoneNumber: string): Promise<Conversation | undefined> {
-    return Array.from(this.conversations.values()).find(c => c.phoneNumber === phoneNumber);
-  }
-
-  async createConversation(insertConversation: InsertConversation): Promise<Conversation> {
-    const id = randomUUID();
-    const conversation: Conversation = {
-      ...insertConversation,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.conversations.set(id, conversation);
-    return conversation;
-  }
-
-  async updateConversation(id: string, conversationData: Partial<InsertConversation>): Promise<Conversation | undefined> {
-    const existing = this.conversations.get(id);
-    if (!existing) return undefined;
-
-    const updated: Conversation = { ...existing, ...conversationData, updatedAt: new Date() };
-    this.conversations.set(id, updated);
-    return updated;
-  }
-
-  // Auto Reply Rules
-  async getAutoReplyRules(): Promise<AutoReplyRule[]> {
-    return Array.from(this.autoReplyRules.values());
-  }
-
-  async getAutoReplyRule(id: string): Promise<AutoReplyRule | undefined> {
-    return this.autoReplyRules.get(id);
-  }
-
-  async createAutoReplyRule(insertRule: InsertAutoReplyRule): Promise<AutoReplyRule> {
-    const id = randomUUID();
-    const rule: AutoReplyRule = {
-      ...insertRule,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.autoReplyRules.set(id, rule);
-    return rule;
-  }
-
-  async updateAutoReplyRule(id: string, ruleData: Partial<InsertAutoReplyRule>): Promise<AutoReplyRule | undefined> {
-    const existing = this.autoReplyRules.get(id);
-    if (!existing) return undefined;
-
-    const updated: AutoReplyRule = { ...existing, ...ruleData, updatedAt: new Date() };
-    this.autoReplyRules.set(id, updated);
-    return updated;
-  }
-
-  async deleteAutoReplyRule(id: string): Promise<boolean> {
-    return this.autoReplyRules.delete(id);
-  }
-
-  async getActiveAutoReplyRules(): Promise<AutoReplyRule[]> {
-    return Array.from(this.autoReplyRules.values()).filter(r => r.isActive);
+    return Array.from(this.messages.values())
+      .filter(message => message.phoneNumber === phoneNumber)
+      .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
   }
 
   // Campaigns
   async getCampaigns(): Promise<Campaign[]> {
-    return Array.from(this.campaigns.values());
+    return Array.from(this.campaigns.values()).sort((a, b) => 
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
   }
 
   async getCampaign(id: string): Promise<Campaign | undefined> {
@@ -333,17 +239,26 @@ export class MemStorage implements IStorage {
     const campaign: Campaign = {
       ...insertCampaign,
       id,
+      status: insertCampaign.status || 'pending',
+      sentCount: insertCampaign.sentCount || 0,
+      deliveredCount: insertCampaign.deliveredCount || 0,
+      failedCount: insertCampaign.failedCount || 0,
+      scheduledAt: insertCampaign.scheduledAt || null,
       createdAt: new Date(),
+      completedAt: null,
     };
     this.campaigns.set(id, campaign);
     return campaign;
   }
 
-  async updateCampaign(id: string, campaignData: Partial<InsertCampaign>): Promise<Campaign | undefined> {
+  async updateCampaign(id: string, campaignUpdate: Partial<InsertCampaign>): Promise<Campaign | undefined> {
     const existing = this.campaigns.get(id);
     if (!existing) return undefined;
 
-    const updated: Campaign = { ...existing, ...campaignData };
+    const updated: Campaign = {
+      ...existing,
+      ...campaignUpdate,
+    };
     this.campaigns.set(id, updated);
     return updated;
   }
@@ -371,11 +286,14 @@ export class MemStorage implements IStorage {
     return contact;
   }
 
-  async updateContact(id: string, contactData: Partial<InsertContact>): Promise<Contact | undefined> {
+  async updateContact(id: string, contactUpdate: Partial<InsertContact>): Promise<Contact | undefined> {
     const existing = this.contacts.get(id);
     if (!existing) return undefined;
 
-    const updated: Contact = { ...existing, ...contactData };
+    const updated: Contact = {
+      ...existing,
+      ...contactUpdate,
+    };
     this.contacts.set(id, updated);
     return updated;
   }
@@ -429,6 +347,212 @@ export class MemStorage implements IStorage {
     const existing = await this.getSetting(key);
     if (!existing) return false;
     return this.settings.delete(existing.id);
+  }
+}
+
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  // Users
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  // Templates
+  async getTemplates(): Promise<Template[]> {
+    return db.select().from(templates);
+  }
+
+  async getTemplate(id: string): Promise<Template | undefined> {
+    const [template] = await db.select().from(templates).where(eq(templates.id, id));
+    return template || undefined;
+  }
+
+  async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
+    const [template] = await db
+      .insert(templates)
+      .values({
+        ...insertTemplate,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return template;
+  }
+
+  async updateTemplate(id: string, templateUpdate: Partial<InsertTemplate>): Promise<Template | undefined> {
+    const [updated] = await db
+      .update(templates)
+      .set({ ...templateUpdate, updatedAt: new Date() })
+      .where(eq(templates.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(templates).where(eq(templates.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // Messages
+  async getMessages(): Promise<Message[]> {
+    return db.select().from(messages);
+  }
+
+  async getMessage(id: string): Promise<Message | undefined> {
+    const [message] = await db.select().from(messages).where(eq(messages.id, id));
+    return message || undefined;
+  }
+
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const [message] = await db
+      .insert(messages)
+      .values({
+        ...insertMessage,
+        createdAt: new Date(),
+      })
+      .returning();
+    return message;
+  }
+
+  async getMessagesByPhoneNumber(phoneNumber: string): Promise<Message[]> {
+    return db.select().from(messages).where(eq(messages.phoneNumber, phoneNumber));
+  }
+
+  // Campaigns
+  async getCampaigns(): Promise<Campaign[]> {
+    return db.select().from(campaigns);
+  }
+
+  async getCampaign(id: string): Promise<Campaign | undefined> {
+    const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
+    return campaign || undefined;
+  }
+
+  async createCampaign(insertCampaign: InsertCampaign): Promise<Campaign> {
+    const [campaign] = await db
+      .insert(campaigns)
+      .values({
+        ...insertCampaign,
+        createdAt: new Date(),
+      })
+      .returning();
+    return campaign;
+  }
+
+  async updateCampaign(id: string, campaignUpdate: Partial<InsertCampaign>): Promise<Campaign | undefined> {
+    const [updated] = await db
+      .update(campaigns)
+      .set(campaignUpdate)
+      .where(eq(campaigns.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Contacts
+  async getContacts(): Promise<Contact[]> {
+    return db.select().from(contacts);
+  }
+
+  async getContact(id: string): Promise<Contact | undefined> {
+    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+    return contact || undefined;
+  }
+
+  async createContact(insertContact: InsertContact): Promise<Contact> {
+    const [contact] = await db
+      .insert(contacts)
+      .values({
+        ...insertContact,
+        createdAt: new Date(),
+      })
+      .returning();
+    return contact;
+  }
+
+  async updateContact(id: string, contactUpdate: Partial<InsertContact>): Promise<Contact | undefined> {
+    const [updated] = await db
+      .update(contacts)
+      .set(contactUpdate)
+      .where(eq(contacts.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteContact(id: string): Promise<boolean> {
+    const result = await db.delete(contacts).where(eq(contacts.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // Settings
+  async getSettings(): Promise<Setting[]> {
+    return db.select().from(settings);
+  }
+
+  async getSetting(key: string): Promise<Setting | undefined> {
+    const [setting] = await db.select().from(settings).where(eq(settings.key, key));
+    if (setting && setting.value) {
+      // Parse JSON value and handle potential double-encoding
+      try {
+        let value = setting.value;
+        if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+          value = JSON.parse(value);
+        }
+        return { ...setting, value };
+      } catch (error) {
+        console.error('Error parsing setting value:', error);
+        return setting;
+      }
+    }
+    return setting || undefined;
+  }
+
+  async setSetting(insertSetting: InsertSetting): Promise<Setting> {
+    // Ensure value is stored as a plain string, not JSON-encoded
+    const valueToStore = typeof insertSetting.value === 'string' ? insertSetting.value : JSON.stringify(insertSetting.value);
+    
+    const existing = await this.getSetting(insertSetting.key);
+    if (existing) {
+      return this.updateSetting(insertSetting.key, valueToStore) as Promise<Setting>;
+    }
+
+    const [setting] = await db
+      .insert(settings)
+      .values({
+        ...insertSetting,
+        value: valueToStore,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return setting;
+  }
+
+  async updateSetting(key: string, value: any): Promise<Setting | undefined> {
+    const [updated] = await db
+      .update(settings)
+      .set({ value, updatedAt: new Date() })
+      .where(eq(settings.key, key))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteSetting(key: string): Promise<boolean> {
+    const result = await db.delete(settings).where(eq(settings.key, key));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 

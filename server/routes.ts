@@ -2,8 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertTemplateSchema, insertMessageSchema, insertCampaignSchema, insertContactSchema, insertSettingSchema } from "@shared/schema";
+import { 
+  insertTemplateSchema, insertMessageSchema, insertCampaignSchema, insertContactSchema, insertSettingSchema,
+  insertAutoReplyRuleSchema, insertConversationSchema, loginSchema 
+} from "@shared/schema";
 import { z } from "zod";
+import { authService } from "./auth";
 
 interface WhatsAppMessage {
   messaging_product: 'whatsapp';
