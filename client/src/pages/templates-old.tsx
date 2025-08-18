@@ -1,13 +1,27 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Template } from "@shared/schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Template, insertTemplateSchema } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import TemplateCreationDialog from "@/components/template-creation-dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const templateFormSchema = insertTemplateSchema.extend({
+  bodyText: z.string().min(1, "Body text is required"),
+});
+
+type TemplateFormData = z.infer<typeof templateFormSchema>;
 
 // Helper function to format template text with parameter placeholders
 function formatTemplateText(text: string): string {
@@ -31,10 +45,55 @@ function formatTemplateText(text: string): string {
 }
 
 export default function Templates() {
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: templates = [], isLoading } = useQuery<Template[]>({
     queryKey: ["/api/templates"],
+  });
+
+  const form = useForm<TemplateFormData>({
+    resolver: zodResolver(templateFormSchema),
+    defaultValues: {
+      name: "",
+      category: "marketing",
+      language: "en",
+      status: "pending",
+      bodyText: "",
+    },
+  });
+
+  const createTemplateMutation = useMutation({
+    mutationFn: async (data: TemplateFormData) => {
+      const { bodyText, ...templateData } = data;
+      const template = {
+        ...templateData,
+        components: [
+          {
+            type: "BODY",
+            text: bodyText,
+          }
+        ],
+      };
+      const response = await apiRequest("POST", "/api/templates", template);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Template Created",
+        description: "Your template has been created successfully.",
+      });
+      setCreateModalOpen(false);
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Create Template",
+        description: error.message || "An error occurred while creating the template.",
+        variant: "destructive",
+      });
+    },
   });
 
   const refreshTemplatesMutation = useMutation({
@@ -78,6 +137,10 @@ export default function Templates() {
     },
   });
 
+  const onSubmit = (data: TemplateFormData) => {
+    createTemplateMutation.mutate(data);
+  };
+
   const handleCreateTemplate = async (templateData: any) => {
     try {
       const response = await apiRequest("POST", "/api/templates", templateData);
@@ -100,9 +163,9 @@ export default function Templates() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <i className="fas fa-spinner fa-spin text-4xl text-slate-400 mb-4"></i>
+          <i className="fas fa-spinner fa-spin text-4xl text-slate-300 mb-4"></i>
           <p className="text-slate-500">Loading templates...</p>
         </div>
       </div>
@@ -134,6 +197,103 @@ export default function Templates() {
                 Create Template
               </Button>
             </TemplateCreationDialog>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New Template</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Template Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter template name" data-testid="input-template-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-template-category">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="marketing">Marketing</SelectItem>
+                              <SelectItem value="transactional">Transactional</SelectItem>
+                              <SelectItem value="utility">Utility</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="bodyText"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Message Body</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            placeholder="Enter your message body. Use {{1}}, {{2}}, etc. for dynamic parameters."
+                            rows={4}
+                            data-testid="textarea-template-body"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-xs text-slate-500">
+                          Use double curly braces with numbers for dynamic parameters: {`{{1}}`}, {`{{2}}`}, etc.
+                        </p>
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end space-x-3">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setCreateModalOpen(false)}
+                      data-testid="button-cancel-template"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={createTemplateMutation.isPending}
+                      data-testid="button-save-template"
+                    >
+                      {createTemplateMutation.isPending ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin mr-2"></i>
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-save mr-2"></i>
+                          Create Template
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
           </div>
         </div>
       </header>
@@ -143,8 +303,7 @@ export default function Templates() {
         {templates.length > 0 ? (
           <div className="grid gap-6">
             {templates.map((template) => {
-              const components = Array.isArray(template.components) ? template.components : [];
-              const bodyComponent = components.find((c: any) => c.type === "BODY");
+              const bodyComponent = Array.isArray(template.components) ? template.components.find((c: any) => c.type === "BODY") : null;
               
               return (
                 <Card key={template.id} data-testid={`template-card-${template.id}`}>
@@ -174,6 +333,7 @@ export default function Templates() {
                         <div className="mt-1 bg-white rounded-lg border border-green-200 shadow-sm overflow-hidden">
                           {/* Header Component Preview */}
                           {(() => {
+                            const components = Array.isArray(template.components) ? template.components : [];
                             const headerComponent = components.find((c: any) => c.type === 'HEADER');
                             if (headerComponent?.format === 'IMAGE') {
                               return (
@@ -207,6 +367,7 @@ export default function Templates() {
 
                             {/* Footer Component */}
                             {(() => {
+                              const components = Array.isArray(template.components) ? template.components : [];
                               const footerComponent = components.find((c: any) => c.type === 'FOOTER');
                               if (footerComponent) {
                                 return (
@@ -220,6 +381,7 @@ export default function Templates() {
 
                           {/* Interactive Buttons */}
                           {(() => {
+                            const components = Array.isArray(template.components) ? template.components : [];
                             const buttonComponent = components.find((c: any) => c.type === 'BUTTONS');
                             if (buttonComponent?.buttons && buttonComponent.buttons.length > 0) {
                               return (

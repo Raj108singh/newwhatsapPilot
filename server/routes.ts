@@ -198,10 +198,13 @@ class WhatsAppService {
         const result = await this.sendMessage(message);
         results.push({ recipient, success: true, result });
 
-        // Store complete template message in database  
+        // Store complete template message with actual content
+        const bodyComponent = template.components?.find((c: any) => c.type === 'BODY');
+        const actualContent = bodyComponent?.text || template.name;
+        
         const storedMessage = await storage.createMessage({
           phoneNumber: recipient,
-          content: template.name,
+          content: actualContent,
           direction: 'outbound',
           messageType: 'template',
           status: 'sent',
@@ -667,9 +670,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           // Broadcast new messages to all connected clients for real-time updates
+          const allMessages = await storage.getMessages();
           broadcastMessage({
             type: 'messages_updated',
-            data: 'refresh',
+            data: allMessages,
           });
 
           // Broadcast campaign completion
