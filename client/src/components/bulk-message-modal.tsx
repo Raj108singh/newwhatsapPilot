@@ -31,8 +31,11 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
 
   const sendBulkMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/send-bulk", data);
-      return response.json();
+      const response = await apiRequest("/api/send-bulk", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      return response;
     },
     onSuccess: (data) => {
       toast({

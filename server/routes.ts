@@ -641,7 +641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk messaging endpoint
-  app.post('/api/send-bulk', async (req, res) => {
+  app.post('/api/send-bulk', authenticate, async (req: any, res) => {
     try {
       const { templateId, recipients, parameters = [], campaignName } = req.body;
 
@@ -670,7 +670,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sentCount: successCount,
             deliveredCount: successCount, // Assume sent = delivered for now
             failedCount,
-            completedAt: new Date(),
           });
 
           // Broadcast new messages to all connected clients for real-time updates
