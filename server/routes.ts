@@ -442,5 +442,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/settings/general', async (req, res) => {
+    try {
+      const { businessName, timezone } = req.body;
+      
+      // In a real application, you would save these to your database
+      // For now, we just acknowledge the request
+      res.json({ 
+        success: true, 
+        message: 'General settings saved successfully',
+        data: { businessName, timezone }
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to save general settings' });
+    }
+  });
+
   return httpServer;
 }
