@@ -6,8 +6,9 @@ interface AuthWrapperProps {
 }
 
 export default function AuthWrapper({ children }: AuthWrapperProps) {
-  const { isAuthenticated, isLoading } = useAuthStatus();
+  const { isAuthenticated, isLoading, token } = useAuthStatus();
 
+  // Show loading only when we have a token and are fetching user data
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
@@ -19,7 +20,8 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     );
   }
 
-  if (!isAuthenticated) {
+  // If no token or not authenticated, show login
+  if (!token || !isAuthenticated) {
     return <LoginPage />;
   }
 

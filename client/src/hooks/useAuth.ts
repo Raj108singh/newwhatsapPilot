@@ -15,18 +15,16 @@ export function useAuthStatus() {
   
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['/api/auth/me'],
-    queryFn: () => apiRequest('/api/auth/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }),
+    queryFn: () => apiRequest('/api/auth/me'),
     enabled: !!token,
     retry: false,
+    staleTime: 0, // Always fresh
+    refetchOnMount: true,
   });
 
   return {
     user,
-    isAuthenticated: !!user && !error,
+    isAuthenticated: !!user && !!token && !error,
     isLoading: isLoading && !!token,
     token,
   };
@@ -47,7 +45,9 @@ export function useLogin() {
     onSuccess: (data: LoginResult) => {
       if (data.success && data.token) {
         localStorage.setItem('auth_token', data.token);
+        // Force refresh the auth state
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        queryClient.refetchQueries({ queryKey: ['/api/auth/me'] });
         toast({
           title: "Login successful",
           description: `Welcome back, ${data.user?.name || data.user?.username}!`,
@@ -89,6 +89,8 @@ export function useLogout() {
     onSuccess: () => {
       localStorage.removeItem('auth_token');
       queryClient.clear();
+      // Force redirect to login by refreshing the page or triggering re-render
+      window.location.reload();
       toast({
         title: "Logged out successfully",
       });
