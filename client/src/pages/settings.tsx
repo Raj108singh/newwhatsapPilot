@@ -64,6 +64,14 @@ export default function Settings() {
           timezone: settings.timezone || "",
           company_logo: settings.company_logo || ""
         });
+        
+        // Also populate WhatsApp settings
+        setWhatsappSettings({
+          token: settings.whatsapp_token || "",
+          phoneNumberId: settings.whatsapp_phone_number_id || "",
+          verifyToken: settings.whatsapp_verify_token || "",
+          businessAccountId: settings.whatsapp_business_account_id || ""
+        });
       } catch (error) {
         console.error("Failed to load settings:", error);
       } finally {
