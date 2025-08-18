@@ -273,6 +273,65 @@ class WhatsAppService {
   // Build template components with proper structure for WhatsApp API
   buildTemplateComponents(templateComponents: any[], parameters: any[] = []): any[] {
     if (!templateComponents) return [];
+    
+    const components: any[] = [];
+    let paramIndex = 0;
+    
+    templateComponents.forEach((component: any) => {
+      if (component.type === "HEADER" && component.format === "TEXT" && component.text) {
+        const headerMatches = component.text.match(/\{\{(\d+)\}\}/g);
+        if (headerMatches && parameters[paramIndex]) {
+          components.push({
+            type: "header",
+            parameters: headerMatches.map(() => ({
+              type: "text",
+              text: parameters[paramIndex++] || ""
+            }))
+          });
+        }
+      }
+      
+      if (component.type === "BODY" && component.text) {
+        const bodyMatches = component.text.match(/\{\{(\d+)\}\}/g);
+        if (bodyMatches && bodyMatches.length > 0) {
+          components.push({
+            type: "body",
+            parameters: bodyMatches.map(() => ({
+              type: "text",
+              text: parameters[paramIndex++] || ""
+            }))
+          });
+        }
+      }
+      
+      if (component.type === "BUTTONS" && component.buttons) {
+        const buttonParams: any[] = [];
+        component.buttons.forEach((button: any, buttonIndex: number) => {
+          if (button.type === "URL" && button.url && button.url.includes("{{")) {
+            const urlMatches = button.url.match(/\{\{(\d+)\}\}/g);
+            if (urlMatches) {
+              urlMatches.forEach(() => {
+                buttonParams.push({
+                  type: "text",
+                  text: parameters[paramIndex++] || ""
+                });
+              });
+            }
+          }
+        });
+        
+        if (buttonParams.length > 0) {
+          components.push({
+            type: "button",
+            sub_type: "url",
+            index: 0,
+            parameters: buttonParams
+          });
+        }
+      }
+    });
+    
+    return components;
 
     const components = [];
 

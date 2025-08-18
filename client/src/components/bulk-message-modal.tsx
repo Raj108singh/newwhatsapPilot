@@ -99,14 +99,61 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
   const extractTemplateParameters = (template: Template) => {
     if (!template.components || !Array.isArray(template.components)) return [];
     
-    const bodyComponent = template.components.find(c => c.type === "BODY");
-    if (!bodyComponent || !bodyComponent.text) return [];
-
-    const paramMatches = bodyComponent.text.match(/\{\{(\d+)\}\}/g);
-    return paramMatches ? paramMatches.map((match: string, index: number) => ({ 
-      placeholder: match, 
-      index: index + 1 
-    })) : [];
+    const params: any[] = [];
+    
+    // Extract parameters from all components
+    template.components.forEach((component: any) => {
+      if (component.type === "HEADER" && component.format === "TEXT" && component.text) {
+        const headerMatches = component.text.match(/\{\{(\d+)\}\}/g);
+        if (headerMatches) {
+          headerMatches.forEach((match: string, index: number) => {
+            params.push({
+              component: "HEADER",
+              placeholder: match,
+              index: params.length + 1,
+              label: `Header ${match}`,
+              example: component.example?.header_text?.[index] || ""
+            });
+          });
+        }
+      }
+      
+      if (component.type === "BODY" && component.text) {
+        const bodyMatches = component.text.match(/\{\{(\d+)\}\}/g);
+        if (bodyMatches) {
+          bodyMatches.forEach((match: string, index: number) => {
+            params.push({
+              component: "BODY",
+              placeholder: match,
+              index: params.length + 1,
+              label: `Body ${match}`,
+              example: component.example?.body_text?.[0]?.[index] || ""
+            });
+          });
+        }
+      }
+      
+      if (component.type === "BUTTONS" && component.buttons) {
+        component.buttons.forEach((button: any, buttonIndex: number) => {
+          if (button.type === "URL" && button.url && button.url.includes("{{")) {
+            const urlMatches = button.url.match(/\{\{(\d+)\}\}/g);
+            if (urlMatches) {
+              urlMatches.forEach((match: string) => {
+                params.push({
+                  component: "BUTTON",
+                  placeholder: match,
+                  index: params.length + 1,
+                  label: `Button ${buttonIndex + 1} URL ${match}`,
+                  example: button.example?.[0] || ""
+                });
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    return params;
   };
 
   const templateParams = selectedTemplate ? extractTemplateParameters(selectedTemplate) : [];
@@ -186,14 +233,58 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
           {/* Template Preview */}
           {selectedTemplate && (
             <div>
-              <Label>Message Preview</Label>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <div className="text-sm text-slate-600">
-                  <strong>Template:</strong> {selectedTemplate.name}<br /><br />
-                  {selectedTemplate.components && 
-                   Array.isArray(selectedTemplate.components) && 
-                   selectedTemplate.components.find(c => c.type === "BODY")?.text}
+              <Label>Template Preview</Label>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+                <div className="text-sm font-medium text-slate-700">
+                  <strong>Template:</strong> {selectedTemplate.name} ({selectedTemplate.category})
                 </div>
+                
+                {selectedTemplate.components && Array.isArray(selectedTemplate.components) && (
+                  <div className="space-y-2">
+                    {selectedTemplate.components.map((component: any, index: number) => (
+                      <div key={index} className="text-sm">
+                        {component.type === "HEADER" && (
+                          <div className="bg-blue-50 p-2 rounded">
+                            <div className="font-medium text-blue-800">Header:</div>
+                            <div className="text-blue-700">
+                              {component.format === "TEXT" && component.text}
+                              {component.format === "IMAGE" && <span className="italic">Image header</span>}
+                              {component.format === "VIDEO" && <span className="italic">Video header</span>}
+                              {component.format === "DOCUMENT" && <span className="italic">Document header</span>}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {component.type === "BODY" && (
+                          <div className="bg-gray-50 p-2 rounded">
+                            <div className="font-medium text-gray-800">Body:</div>
+                            <div className="text-gray-700 whitespace-pre-wrap">{component.text}</div>
+                          </div>
+                        )}
+                        
+                        {component.type === "FOOTER" && (
+                          <div className="bg-gray-100 p-2 rounded">
+                            <div className="font-medium text-gray-600">Footer:</div>
+                            <div className="text-gray-600 text-xs">{component.text}</div>
+                          </div>
+                        )}
+                        
+                        {component.type === "BUTTONS" && (
+                          <div className="bg-green-50 p-2 rounded">
+                            <div className="font-medium text-green-800">Buttons:</div>
+                            <div className="space-y-1">
+                              {component.buttons.map((button: any, btnIndex: number) => (
+                                <div key={btnIndex} className="text-green-700 text-xs">
+                                  • {button.text} ({button.type})
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -202,11 +293,17 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
           {templateParams.length > 0 && (
             <div>
               <Label>Template Parameters</Label>
-              <div className="space-y-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+                <div className="text-sm text-amber-800">
+                  This template requires {templateParams.length} parameter(s). Fill in the values below:
+                </div>
                 {templateParams.map((param: any, index: number) => (
-                  <div key={param.placeholder}>
-                    <Label className="block text-xs font-medium text-slate-600 mb-1">
-                      {param.placeholder}
+                  <div key={param.placeholder} className="space-y-1">
+                    <Label className="block text-sm font-medium text-slate-700">
+                      {param.label}
+                      <span className="text-xs text-slate-500 ml-2">
+                        ({param.component} component)
+                      </span>
                     </Label>
                     <Input
                       value={parameters[index] || ""}
@@ -215,10 +312,15 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                         newParams[index] = e.target.value;
                         setParameters(newParams);
                       }}
-                      placeholder={`Parameter ${param.index}`}
+                      placeholder={param.example || `Enter value for ${param.placeholder}`}
                       className="text-sm"
                       data-testid={`input-param-${index}`}
                     />
+                    {param.example && (
+                      <div className="text-xs text-slate-500">
+                        Example: {param.example}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
