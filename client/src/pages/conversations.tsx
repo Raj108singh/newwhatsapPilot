@@ -26,6 +26,7 @@ export default function ConversationsPage() {
 
   const { data: messages = [], isLoading: loadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/conversations", selectedConversation?.id, "messages"],
+    queryFn: () => apiRequest(`/api/conversations/${selectedConversation?.id}/messages`),
     enabled: !!selectedConversation?.id,
   });
 
@@ -273,7 +274,13 @@ export default function ConversationsPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {messages.map((message: Message) => (
+                      {messages.length === 0 ? (
+                        <div className="text-center text-gray-500 py-8">
+                          <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p>No messages yet</p>
+                        </div>
+                      ) : (
+                        messages.map((message: Message) => (
                         <div
                           key={message.id}
                           className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
@@ -310,7 +317,8 @@ export default function ConversationsPage() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   )}
                 </div>
