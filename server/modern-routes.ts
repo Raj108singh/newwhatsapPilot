@@ -105,6 +105,148 @@ class EnhancedWhatsAppService {
     const data = await response.json();
     return data.data || [];
   }
+
+  async sendBulkTemplateMessages(recipients: string[], template: any, parameters: any[] = []): Promise<any[]> {
+    await this.updateCredentials();
+    
+    console.log('Sending bulk template messages with credentials:', {
+      tokenPrefix: this.token.substring(0, 10) + '...',
+      phoneNumberId: this.phoneNumberId,
+      businessAccountId: this.businessAccountId
+    });
+
+    const results = [];
+    for (const recipient of recipients) {
+      try {
+        const message = {
+          messaging_product: 'whatsapp',
+          to: recipient,
+          type: 'template',
+          template: {
+            name: template.name,
+            language: {
+              code: template.language,
+            },
+            components: this.buildTemplateComponents(template.components as any[], parameters),
+          },
+        };
+
+        console.log('Sending template message:', JSON.stringify(message, null, 2));
+        console.log('API URL:', `https://graph.facebook.com/v18.0/${this.phoneNumberId}/messages`);
+        console.log('Auth token (first 20 chars):', this.token.substring(0, 20) + '...');
+
+        const result = await this.sendMessage(message);
+        results.push({ recipient, success: true, result });
+
+        // Store complete template message with actual content
+        const bodyComponent = (template.components as any[])?.find((c: any) => c.type === 'BODY');
+        const actualContent = bodyComponent?.text || `Template: ${template.name}`;
+        
+        console.log('Storing template message:', {
+          recipient,
+          content: actualContent,
+          templateName: template.name
+        });
+        
+        const storedMessage = await storage.createMessage({
+          phoneNumber: recipient.replace('+', ''), // Remove + for consistency
+          content: actualContent,
+          direction: 'outbound',
+          messageType: 'template',
+          status: 'sent',
+          templateId: template.id,
+          templateData: template.components as any,
+        });
+        
+        console.log('Template message stored with ID:', storedMessage.id);
+
+      } catch (error) {
+        console.error(`Failed to send message to ${recipient}:`, error);
+        results.push({ recipient, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        
+        // Store failed message for tracking
+        try {
+          await storage.createMessage({
+            phoneNumber: recipient,
+            content: `Failed to send template: ${template.name}`,
+            direction: 'outbound',
+            messageType: 'template',
+            status: 'failed',
+            templateId: template.id,
+          });
+        } catch (storageError) {
+          console.error('Failed to store failed message:', storageError);
+        }
+      }
+    }
+
+    return results;
+  }
+
+  // Build template components with proper structure for WhatsApp API
+  buildTemplateComponents(templateComponents: any[], parameters: any[] = []): any[] {
+    if (!templateComponents) return [];
+    
+    const components: any[] = [];
+    let paramIndex = 0;
+    
+    templateComponents.forEach((component: any) => {
+      if (component.type === "HEADER" && component.format === "TEXT" && component.text) {
+        const headerMatches = component.text.match(/\{\{(\d+)\}\}/g);
+        if (headerMatches && parameters.length > 0) {
+          components.push({
+            type: "header",
+            parameters: headerMatches.map(() => ({
+              type: "text",
+              text: parameters[paramIndex++] || ""
+            }))
+          });
+        }
+      }
+      
+      if (component.type === "BODY" && component.text) {
+        const bodyMatches = component.text.match(/\{\{(\d+)\}\}/g);
+        if (bodyMatches && bodyMatches.length > 0 && parameters.length > 0) {
+          components.push({
+            type: "body",
+            parameters: bodyMatches.map(() => ({
+              type: "text",
+              text: parameters[paramIndex++] || ""
+            }))
+          });
+        }
+      }
+      
+      if (component.type === "BUTTONS" && component.buttons) {
+        const buttonParams: any[] = [];
+        component.buttons.forEach((button: any, buttonIndex: number) => {
+          if (button.type === "URL" && button.url && button.url.includes("{{")) {
+            const urlMatches = button.url.match(/\{\{(\d+)\}\}/g);
+            if (urlMatches) {
+              urlMatches.forEach(() => {
+                buttonParams.push({
+                  type: "text",
+                  text: parameters[paramIndex++] || ""
+                });
+              });
+            }
+          }
+        });
+        
+        if (buttonParams.length > 0) {
+          components.push({
+            type: "button",
+            sub_type: "url",
+            index: "0",
+            parameters: buttonParams
+          });
+        }
+      }
+    });
+    
+    console.log('Built template components:', JSON.stringify(components, null, 2));
+    return components;
+  }
 }
 
 export async function registerModernRoutes(app: Express): Promise<Server> {
@@ -669,6 +811,159 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Webhook verification error:', error);
       res.status(500).send('Internal Server Error');
+    }
+  });
+
+  // Bulk Messaging API
+  app.post('/api/send-bulk', authenticate, async (req: any, res) => {
+    console.log('=== BULK MESSAGE REQUEST RECEIVED ===');
+    console.log('Headers:', req.headers);
+    console.log('User:', req.user);
+    console.log('Request body:', req.body);
+    
+    try {
+      const { templateId, recipients, parameters = [], campaignName } = req.body;
+
+      console.log('Bulk message request received:', {
+        templateId,
+        recipients,
+        parameters,
+        campaignName,
+        user: req.user?.username || 'unknown'
+      });
+
+      if (!templateId || !recipients || !Array.isArray(recipients)) {
+        console.log('Missing required fields in bulk message request');
+        res.status(400).json({ error: 'Missing required fields: templateId, recipients' });
+        return;
+      }
+
+      // Get template details for logging
+      const template = await storage.getTemplate(templateId);
+      console.log('Template details:', {
+        name: template?.name,
+        language: template?.language,
+        components: template?.components
+      });
+
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+
+      // Create campaign
+      let campaign;
+      try {
+        campaign = await storage.createCampaign({
+          name: campaignName || `Campaign ${new Date().toISOString()}`,
+          templateId,
+          recipients,
+          totalRecipients: recipients.length,
+          status: 'running',
+        });
+        console.log('Campaign created successfully:', campaign.id);
+        
+        if (!campaign || !campaign.id) {
+          throw new Error('Campaign creation failed - no campaign returned');
+        }
+      } catch (campaignError) {
+        console.error('Campaign creation failed:', campaignError);
+        res.status(500).json({ 
+          error: 'Failed to create campaign',
+          details: campaignError instanceof Error ? campaignError.message : 'Unknown error'
+        });
+        return;
+      }
+
+      console.log('Starting bulk message sending:', { 
+        templateId, 
+        recipientsCount: recipients.length, 
+        parametersCount: parameters.length,
+        parameters: parameters 
+      });
+
+      // Verify WhatsApp credentials before attempting to send
+      try {
+        await whatsappService.updateCredentials();
+        console.log('WhatsApp credentials verified successfully');
+      } catch (credError) {
+        console.error('WhatsApp credentials verification failed:', credError);
+        await storage.updateCampaign(campaign.id, {
+          status: 'failed',
+        });
+        res.status(400).json({ 
+          error: 'WhatsApp credentials not configured properly. Please check Settings.',
+          details: credError instanceof Error ? credError.message : 'Unknown error'
+        });
+        return;
+      }
+
+      // Start sending messages in background
+      console.log('About to call sendBulkMessages...');
+      console.log('WhatsApp service initialized, calling sendBulkMessages with:', {
+        recipients: recipients,
+        templateId: templateId,
+        parameters: parameters
+      });
+
+      // Use the enhanced WhatsApp service to send bulk messages
+      whatsappService.sendBulkTemplateMessages(recipients, template, parameters)
+        .then(async (results) => {
+          console.log('Bulk messages completed:', results);
+          const successCount = results.filter(r => r.success).length;
+          const failedCount = results.filter(r => !r.success).length;
+
+          // Log detailed results for debugging
+          results.forEach((result, index) => {
+            console.log(`Message ${index + 1} - ${result.recipient}:`, result.success ? 'SUCCESS' : `FAILED: ${result.error}`);
+          });
+
+          await storage.updateCampaign(campaign.id, {
+            status: 'completed',
+            sentCount: successCount,
+            deliveredCount: successCount, // Assume sent = delivered for now
+            failedCount,
+          });
+
+          // Broadcast new messages to all connected clients for real-time updates
+          const allMessages = await storage.getMessages();
+          broadcastMessage({
+            type: 'messages_updated',
+            data: allMessages,
+          });
+
+          // Broadcast campaign completion
+          broadcastMessage({
+            type: 'campaign_completed',
+            data: {
+              campaignId: campaign.id,
+              results,
+            },
+          });
+        })
+        .catch(async (error) => {
+          console.error('Bulk messages failed:', error);
+          await storage.updateCampaign(campaign.id, {
+            status: 'failed',
+          });
+
+          broadcastMessage({
+            type: 'campaign_failed',
+            data: {
+              campaignId: campaign.id,
+              error: error.message,
+            },
+          });
+        });
+
+      res.json({
+        success: true,
+        campaignId: campaign.id,
+        message: 'Bulk message campaign started',
+      });
+
+    } catch (error) {
+      console.error('Bulk messaging error:', error);
+      res.status(500).json({ error: 'Failed to send bulk messages' });
     }
   });
 
