@@ -867,6 +867,30 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Campaigns API
+  app.get('/api/campaigns', authenticate, async (req: any, res) => {
+    try {
+      const campaigns = await storage.getCampaigns();
+      res.json(campaigns);
+    } catch (error) {
+      console.error('Get campaigns error:', error);
+      res.status(500).json({ error: 'Failed to get campaigns' });
+    }
+  });
+
+  app.get('/api/campaigns/:id', authenticate, async (req: any, res) => {
+    try {
+      const campaign = await storage.getCampaign(req.params.id);
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+      res.json(campaign);
+    } catch (error) {
+      console.error('Get campaign error:', error);
+      res.status(500).json({ error: 'Failed to get campaign' });
+    }
+  });
+
   // Bulk Messaging API
   app.post('/api/send-bulk', authenticate, async (req: any, res) => {
     console.log('=== BULK MESSAGE REQUEST RECEIVED ===');
