@@ -107,17 +107,37 @@ class EnhancedWhatsAppService {
   }
 
   async sendBulkTemplateMessages(recipients: string[], template: any, parameters: any[] = []): Promise<any[]> {
+    console.log('=== SEND BULK TEMPLATE MESSAGES CALLED ===');
+    console.log('Recipients count:', recipients.length);
+    console.log('Template name:', template?.name);
+    console.log('Parameters:', parameters);
+    
     await this.updateCredentials();
     
+    console.log('=== CREDENTIALS UPDATED ===');
     console.log('Sending bulk template messages with credentials:', {
       tokenPrefix: this.token.substring(0, 10) + '...',
       phoneNumberId: this.phoneNumberId,
-      businessAccountId: this.businessAccountId
+      businessAccountId: this.businessAccountId,
+      hasToken: !!this.token,
+      hasPhoneNumberId: !!this.phoneNumberId
     });
 
+    if (!this.token || !this.phoneNumberId) {
+      throw new Error('WhatsApp credentials not properly configured');
+    }
+
     const results = [];
-    for (const recipient of recipients) {
+    console.log('=== STARTING TO SEND TO RECIPIENTS ===');
+    
+    for (let i = 0; i < recipients.length; i++) {
+      const recipient = recipients[i];
+      console.log(`=== PROCESSING RECIPIENT ${i + 1}/${recipients.length}: ${recipient} ===`);
+      
       try {
+        const templateComponents = this.buildTemplateComponents(template.components as any[], parameters);
+        console.log('Built template components for recipient:', JSON.stringify(templateComponents, null, 2));
+        
         const message = {
           messaging_product: 'whatsapp',
           to: recipient,
@@ -127,21 +147,32 @@ class EnhancedWhatsAppService {
             language: {
               code: template.language,
             },
-            components: this.buildTemplateComponents(template.components as any[], parameters),
+            components: templateComponents,
           },
         };
 
-        console.log('Sending template message:', JSON.stringify(message, null, 2));
+        console.log('=== SENDING MESSAGE TO WHATSAPP API ===');
+        console.log('Message payload:', JSON.stringify(message, null, 2));
         console.log('API URL:', `https://graph.facebook.com/v18.0/${this.phoneNumberId}/messages`);
-        console.log('Auth token (first 20 chars):', this.token.substring(0, 20) + '...');
 
         const result = await this.sendMessage(message);
+        console.log('=== WhatsApp API SUCCESS ===');
+        console.log('Result:', JSON.stringify(result, null, 2));
+        
         results.push({ recipient, success: true, result });
 
         // Store complete template message with actual content
         const bodyComponent = (template.components as any[])?.find((c: any) => c.type === 'BODY');
-        const actualContent = bodyComponent?.text || `Template: ${template.name}`;
+        let actualContent = bodyComponent?.text || `Template: ${template.name}`;
         
+        // Replace template parameters in content for display
+        if (parameters.length > 0 && actualContent.includes('{{')) {
+          parameters.forEach((param, index) => {
+            actualContent = actualContent.replace(`{{${index + 1}}}`, param);
+          });
+        }
+        
+        console.log('=== STORING MESSAGE IN DATABASE ===');
         console.log('Storing template message:', {
           recipient,
           content: actualContent,
@@ -158,17 +189,22 @@ class EnhancedWhatsAppService {
           templateData: template.components as any,
         });
         
+        console.log('=== MESSAGE STORED SUCCESSFULLY ===');
         console.log('Template message stored with ID:', storedMessage.id);
 
       } catch (error) {
-        console.error(`Failed to send message to ${recipient}:`, error);
-        results.push({ recipient, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        console.error(`=== FAILED TO SEND MESSAGE TO ${recipient} ===`);
+        console.error('Error details:', error);
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        results.push({ recipient, success: false, error: errorMessage });
         
         // Store failed message for tracking
         try {
           await storage.createMessage({
             phoneNumber: recipient,
-            content: `Failed to send template: ${template.name}`,
+            content: `Failed to send template: ${template.name}. Error: ${errorMessage}`,
             direction: 'outbound',
             messageType: 'template',
             status: 'failed',
@@ -180,6 +216,11 @@ class EnhancedWhatsAppService {
       }
     }
 
+    console.log('=== BULK SEND COMPLETE ===');
+    console.log('Total results:', results.length);
+    console.log('Success count:', results.filter(r => r.success).length);
+    console.log('Failed count:', results.filter(r => !r.success).length);
+    
     return results;
   }
 
@@ -906,9 +947,15 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       });
 
       // Use the enhanced WhatsApp service to send bulk messages
+      console.log('=== STARTING BULK MESSAGE SENDING ===');
+      console.log('Template object:', JSON.stringify(template, null, 2));
+      console.log('Recipients array:', recipients);
+      console.log('Parameters array:', parameters);
+      
       whatsappService.sendBulkTemplateMessages(recipients, template, parameters)
         .then(async (results) => {
-          console.log('Bulk messages completed:', results);
+          console.log('=== BULK MESSAGES COMPLETED ===');
+          console.log('Results:', JSON.stringify(results, null, 2));
           const successCount = results.filter(r => r.success).length;
           const failedCount = results.filter(r => !r.success).length;
 
@@ -941,7 +988,10 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
           });
         })
         .catch(async (error) => {
-          console.error('Bulk messages failed:', error);
+          console.error('=== BULK MESSAGES FAILED ===');
+          console.error('Error details:', error);
+          console.error('Stack trace:', error.stack);
+          
           await storage.updateCampaign(campaign.id, {
             status: 'failed',
           });
