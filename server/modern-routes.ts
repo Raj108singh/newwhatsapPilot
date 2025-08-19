@@ -82,7 +82,19 @@ class EnhancedWhatsAppService {
     });
 
     if (!response.ok) {
-      throw new Error(`WhatsApp API error: ${response.status}`);
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = await response.text();
+      }
+      console.error('WhatsApp API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData: errorData,
+        requestMessage: message
+      });
+      throw new Error(`WhatsApp API error: ${response.status} ${response.statusText}. Details: ${JSON.stringify(errorData)}`);
     }
 
     return await response.json();
@@ -247,7 +259,7 @@ class EnhancedWhatsAppService {
       
       if (component.type === "BODY" && component.text) {
         const bodyMatches = component.text.match(/\{\{(\d+)\}\}/g);
-        if (bodyMatches && bodyMatches.length > 0 && parameters.length > 0) {
+        if (bodyMatches && bodyMatches.length > 0) {
           components.push({
             type: "body",
             parameters: bodyMatches.map(() => ({
