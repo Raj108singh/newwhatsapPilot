@@ -20,11 +20,11 @@ export default function ConversationsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: conversations = [], isLoading: loadingConversations } = useQuery({
+  const { data: conversations = [], isLoading: loadingConversations } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
 
-  const { data: messages = [], isLoading: loadingMessages } = useQuery({
+  const { data: messages = [], isLoading: loadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/conversations", selectedConversation?.id, "messages"],
     enabled: !!selectedConversation?.id,
   });
@@ -157,14 +157,15 @@ export default function ConversationsPage() {
           </div>
         </div>
 
-        {/* Chat Interface */}
-        <div className="flex-1 flex bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden">
-          {/* Conversations List */}
-          <div className="w-1/3 border-r border-gray-200 dark:border-gray-700">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Conversations
+        {/* Chat Interface - WhatsApp Style */}
+        <div className="flex-1 flex bg-white dark:bg-gray-900 rounded-lg shadow-xl overflow-hidden" style={{ background: '#f0f2f5' }}>
+          {/* Conversations List - WhatsApp Sidebar */}
+          <div className="w-1/3 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-green-600">
+              <h2 className="text-lg font-semibold text-white">
+                WhatsApp Business
               </h2>
+              <p className="text-green-100 text-sm">Conversations</p>
             </div>
             
             <ScrollArea className="flex-1" style={{ height: 'calc(100vh - 200px)' }}>
@@ -217,7 +218,7 @@ export default function ConversationsPage() {
                             <div className="flex items-center justify-between mt-2">
                               <span className="text-xs text-gray-400">
                                 {conversation.lastMessageAt && 
-                                  formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: true })
+                                  formatDistanceToNow(new Date(conversation.lastMessageAt || new Date()), { addSuffix: true })
                                 }
                               </span>
                               
@@ -241,27 +242,31 @@ export default function ConversationsPage() {
           <div className="flex-1 flex flex-col">
             {selectedConversation ? (
               <>
-                {/* Chat Header */}
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                {/* Chat Header - WhatsApp Style */}
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-green-600 text-white">
                   <div className="flex items-center space-x-3">
                     <Avatar>
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
+                      <AvatarFallback className="bg-white text-green-600 font-bold">
                         {getInitials(selectedConversation.phoneNumber)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                      <h3 className="font-semibold text-white">
                         {selectedConversation.contactName || selectedConversation.phoneNumber}
                       </h3>
-                      <p className="text-sm text-gray-500">
-                        {selectedConversation.phoneNumber}
+                      <p className="text-sm text-green-100">
+                        {selectedConversation.phoneNumber} • Active now
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Messages */}
-                <ScrollArea className="flex-1 p-4" style={{ height: 'calc(100vh - 300px)' }}>
+                {/* Messages Area - WhatsApp Chat Background */}
+                <div className="flex-1 p-4 overflow-y-auto" style={{ 
+                  height: 'calc(100vh - 300px)',
+                  backgroundImage: `url("data:image/svg+xml,%3csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3e%3cg fill='none' fill-rule='evenodd'%3e%3cg fill='%23e5ddd5' fill-opacity='0.1'%3e%3cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e")`,
+                  backgroundColor: '#e5ddd5'
+                }}>
                   {loadingMessages ? (
                     <div className="flex items-center justify-center">
                       <div className="w-6 h-6 border-2 border-green-200 border-t-green-600 rounded-full animate-spin" />
@@ -275,10 +280,10 @@ export default function ConversationsPage() {
                           data-testid={`message-${message.id}`}
                         >
                           <div
-                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                            className={`max-w-xs lg:max-w-md px-4 py-2 ${
                               message.direction === 'outbound'
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
+                                ? 'bg-green-500 text-white rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-md shadow-md'
+                                : 'bg-white text-gray-900 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-md shadow-md border'
                             }`}
                           >
                             <p className="text-sm">{message.content}</p>
@@ -289,7 +294,7 @@ export default function ConversationsPage() {
                               <span className={`text-xs ${
                                 message.direction === 'outbound' ? 'text-green-100' : 'text-gray-500'
                               }`}>
-                                {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                                {formatDistanceToNow(new Date(message.createdAt || new Date()), { addSuffix: true })}
                               </span>
                               
                               {message.direction === 'outbound' && (
@@ -308,22 +313,24 @@ export default function ConversationsPage() {
                       ))}
                     </div>
                   )}
-                </ScrollArea>
+                </div>
 
-                {/* Message Input */}
-                <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                {/* Message Input - WhatsApp Style */}
+                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50">
                   <div className="flex space-x-2">
                     <Input
-                      placeholder="Type your message..."
+                      placeholder="Type a message"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                       data-testid="input-message"
+                      className="rounded-full border-gray-300 focus:border-green-500"
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim() || sendMessageMutation.isPending}
                       data-testid="button-send-message"
+                      className="bg-green-600 hover:bg-green-700 text-white rounded-full px-4"
                     >
                       <Send className="w-4 h-4" />
                     </Button>
