@@ -8,10 +8,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { MessageCircle, Send, User, Clock, Check, CheckCheck, Phone } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
+import { enIN } from "date-fns/locale";
 import { apiRequest } from "@/lib/queryClient";
 import type { Conversation, Message } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import ChatMessage from "@/components/chat-message";
 
 export default function ConversationsPage() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -29,6 +31,21 @@ export default function ConversationsPage() {
     queryFn: () => apiRequest(`/api/conversations/${selectedConversation?.id}/messages`),
     enabled: !!selectedConversation?.id,
   });
+
+  // Sort messages by creation date (oldest first, newest at bottom)
+  const sortedMessages = [...messages].sort((a, b) => 
+    new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+  );
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      const messagesContainer = document.getElementById('messages-container');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
+  }, [messages]);
 
   const sendMessageMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/messages", {
@@ -137,6 +154,20 @@ export default function ConversationsPage() {
     return phoneNumber.slice(-2).toUpperCase();
   };
 
+  // Format time in Asia/Kolkata timezone
+  const formatTimeInIST = (date: Date | string) => {
+    const utcDate = new Date(date);
+    // Add 5:30 hours for IST (UTC+5:30)
+    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+    return format(istDate, 'HH:mm');
+  };
+
+  const formatDateInIST = (date: Date | string) => {
+    const utcDate = new Date(date);
+    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+    return formatDistanceToNow(istDate, { addSuffix: true });
+  };
+
   return (
     <div className="container mx-auto p-6 h-screen max-h-screen">
       <div className="flex flex-col h-full">
@@ -219,7 +250,7 @@ export default function ConversationsPage() {
                             <div className="flex items-center justify-between mt-2">
                               <span className="text-xs text-gray-400">
                                 {conversation.lastMessageAt && 
-                                  formatDistanceToNow(new Date(conversation.lastMessageAt || new Date()), { addSuffix: true })
+                                  formatDateInIST(conversation.lastMessageAt)
                                 }
                               </span>
                               
@@ -263,7 +294,7 @@ export default function ConversationsPage() {
                 </div>
 
                 {/* Messages Area - WhatsApp Chat Background */}
-                <div className="flex-1 p-4 overflow-y-auto" style={{ 
+                <div id="messages-container" className="flex-1 p-4 overflow-y-auto" style={{ 
                   height: 'calc(100vh - 300px)',
                   backgroundImage: `url("data:image/svg+xml,%3csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3e%3cg fill='none' fill-rule='evenodd'%3e%3cg fill='%23e5ddd5' fill-opacity='0.1'%3e%3cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e")`,
                   backgroundColor: '#e5ddd5'
@@ -280,43 +311,16 @@ export default function ConversationsPage() {
                           <p>No messages yet</p>
                         </div>
                       ) : (
-                        messages.map((message: Message) => (
-                        <div
-                          key={message.id}
-                          className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-                          data-testid={`message-${message.id}`}
-                        >
-                          <div
-                            className={`max-w-xs lg:max-w-md px-4 py-2 ${
-                              message.direction === 'outbound'
-                                ? 'bg-green-500 text-white rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-md shadow-md'
-                                : 'bg-white text-gray-900 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-md shadow-md border'
-                            }`}
-                          >
-                            <p className="text-sm">{message.content}</p>
-                            
-                            <div className={`flex items-center space-x-1 mt-1 ${
-                              message.direction === 'outbound' ? 'justify-end' : 'justify-start'
-                            }`}>
-                              <span className={`text-xs ${
-                                message.direction === 'outbound' ? 'text-green-100' : 'text-gray-500'
-                              }`}>
-                                {formatDistanceToNow(new Date(message.createdAt || new Date()), { addSuffix: true })}
-                              </span>
-                              
-                              {message.direction === 'outbound' && (
-                                <div className="flex items-center space-x-1">
-                                  {getStatusIcon(message.status)}
-                                  {message.isAutoReply && (
-                                    <Badge variant="outline" className="text-xs bg-white text-green-600 border-green-200">
-                                      Auto
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
-                            </div>
+                        sortedMessages.map((message: Message) => (
+                          <div key={message.id} className="mb-4">
+                            <ChatMessage 
+                              message={message}
+                              contact={{
+                                name: selectedConversation.contactName || `Contact ${message.phoneNumber.slice(-4)}`,
+                                phoneNumber: message.phoneNumber
+                              }}
+                            />
                           </div>
-                        </div>
                         ))
                       )}
                     </div>

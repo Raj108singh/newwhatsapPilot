@@ -1,6 +1,7 @@
 import { Message } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import TemplateMessage from "./template-message";
+import { format } from "date-fns";
 
 interface ChatMessageProps {
   message: Message;
@@ -103,16 +104,24 @@ export default function ChatMessage({ message, contact }: ChatMessageProps) {
 }
 
 function getTimeAgo(date: Date): string {
+  // Convert to IST (UTC+5:30)
+  const utcDate = new Date(date);
+  const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+  
   const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const nowIST = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+  
+  const diffInSeconds = Math.floor((nowIST.getTime() - istDate.getTime()) / 1000);
 
   if (diffInSeconds < 60) {
-    return `${diffInSeconds}s ago`;
+    return "now";
   } else if (diffInSeconds < 3600) {
     return `${Math.floor(diffInSeconds / 60)}m ago`;
   } else if (diffInSeconds < 86400) {
-    return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  } else {
+    return format(istDate, 'HH:mm');
+  } else if (diffInSeconds < 604800) { // 7 days
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  } else {
+    return format(istDate, 'dd/MM');
   }
 }
