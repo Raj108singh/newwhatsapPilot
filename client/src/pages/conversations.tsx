@@ -7,6 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import { MessageCircle, Send, User, Clock, Check, CheckCheck, Phone } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { enIN } from "date-fns/locale";
@@ -41,9 +46,10 @@ export default function ConversationsPage() {
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length > 0) {
-      const messagesContainer = document.getElementById('messages-container');
-      if (messagesContainer) {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      // Find the scroll area viewport and scroll to bottom
+      const scrollViewport = document.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollViewport) {
+        scrollViewport.scrollTop = scrollViewport.scrollHeight;
       }
     }
   }, [messages]);
@@ -190,10 +196,20 @@ export default function ConversationsPage() {
           </div>
         </div>
 
-        {/* Chat Interface - WhatsApp Style */}
-        <div className="flex-1 flex bg-white dark:bg-gray-900 rounded-lg shadow-xl overflow-hidden" style={{ background: '#f0f2f5' }}>
+        {/* Chat Interface - WhatsApp Style with Resizable Panels */}
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="flex-1 bg-white dark:bg-gray-900 rounded-lg shadow-xl overflow-hidden"
+          style={{ background: '#f0f2f5' }}
+        >
           {/* Conversations List - WhatsApp Sidebar */}
-          <div className="w-1/3 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600">
+          <ResizablePanel
+            defaultSize={35}
+            minSize={25}
+            maxSize={60}
+            className="bg-white dark:bg-gray-800"
+          >
+            <div className="h-full flex flex-col">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-green-600">
               <h2 className="text-lg font-semibold text-white">
                 WhatsApp Business
@@ -201,7 +217,7 @@ export default function ConversationsPage() {
               <p className="text-green-100 text-sm">Conversations</p>
             </div>
             
-            <ScrollArea className="flex-1" style={{ height: 'calc(100vh - 200px)' }}>
+            <ScrollArea className="flex-1 h-full">
               {loadingConversations ? (
                 <div className="flex items-center justify-center p-8">
                   <div className="w-6 h-6 border-2 border-green-200 border-t-green-600 rounded-full animate-spin" />
@@ -269,10 +285,15 @@ export default function ConversationsPage() {
                 </div>
               )}
             </ScrollArea>
-          </div>
+            </div>
+          </ResizablePanel>
+          
+          {/* Resizable Handle */}
+          <ResizableHandle className="w-1 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 transition-colors cursor-col-resize" />
 
-          {/* Chat Messages */}
-          <div className="flex-1 flex flex-col">
+          {/* Chat Messages Panel */}
+          <ResizablePanel defaultSize={65} minSize={40}>
+            <div className="h-full flex flex-col">
             {selectedConversation ? (
               <>
                 {/* Chat Header - WhatsApp Style */}
@@ -295,38 +316,38 @@ export default function ConversationsPage() {
                 </div>
 
                 {/* Messages Area - WhatsApp Chat Background */}
-                <div id="messages-container" className="flex-1 p-4 overflow-y-auto" style={{ 
-                  height: 'calc(100vh - 300px)',
-                  backgroundImage: `url("data:image/svg+xml,%3csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3e%3cg fill='none' fill-rule='evenodd'%3e%3cg fill='%23e5ddd5' fill-opacity='0.1'%3e%3cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e")`,
-                  backgroundColor: '#e5ddd5'
-                }}>
-                  {loadingMessages ? (
-                    <div className="flex items-center justify-center">
-                      <div className="w-6 h-6 border-2 border-green-200 border-t-green-600 rounded-full animate-spin" />
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {messages.length === 0 ? (
-                        <div className="text-center text-gray-500 py-8">
-                          <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>No messages yet</p>
-                        </div>
-                      ) : (
-                        sortedMessages.map((message: Message) => (
-                          <div key={message.id} className="mb-4">
-                            <ChatMessage 
-                              message={message}
-                              contact={{
-                                name: selectedConversation.contactName || `Contact ${message.phoneNumber.slice(-4)}`,
-                                phoneNumber: message.phoneNumber
-                              }}
-                            />
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
+                <ScrollArea 
+                  className="flex-1 p-4" 
+                  style={{ 
+                    backgroundImage: `url("data:image/svg+xml,%3csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3e%3cg fill='none' fill-rule='evenodd'%3e%3cg fill='%23e5ddd5' fill-opacity='0.1'%3e%3cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e")`,
+                    backgroundColor: '#e5ddd5'
+                  }}
+                >
+                  <div className="space-y-4 pb-4">
+                    {loadingMessages ? (
+                      <div className="flex items-center justify-center p-8">
+                        <div className="w-6 h-6 border-2 border-green-200 border-t-green-600 rounded-full animate-spin" />
+                      </div>
+                    ) : messages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center p-8 text-gray-500">
+                        <MessageCircle className="w-12 h-12 mb-4 opacity-50" />
+                        <p className="text-center">No messages in this conversation</p>
+                        <p className="text-sm text-center mt-2">Start a conversation by sending a message</p>
+                      </div>
+                    ) : (
+                      sortedMessages.map((message: Message) => (
+                        <ChatMessage 
+                          key={message.id}
+                          message={message}
+                          contact={{
+                            name: selectedConversation.contactName || `Contact ${message.phoneNumber.slice(-4)}`,
+                            phoneNumber: message.phoneNumber
+                          }}
+                        />
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
 
                 {/* Message Input - WhatsApp Style */}
                 <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50">
@@ -351,16 +372,21 @@ export default function ConversationsPage() {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
+              <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
                 <div className="text-center">
-                  <MessageCircle className="w-16 h-16 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Select a conversation</h3>
-                  <p>Choose a conversation from the list to start messaging</p>
+                  <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    Select a conversation
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Choose a conversation from the list to start messaging
+                  </p>
                 </div>
               </div>
             )}
-          </div>
-        </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
