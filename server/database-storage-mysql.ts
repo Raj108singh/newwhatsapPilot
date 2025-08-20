@@ -361,13 +361,19 @@ export class DatabaseStorage implements IStorage {
     if (existing) {
       await db
         .update(settings)
-        .set({ value, updatedAt: new Date() })
+        .set({ value: value, updatedAt: new Date() })
         .where(eq(settings.id, existing.id));
       // Query the updated setting
       const [updatedSetting] = await db.select().from(settings).where(eq(settings.id, existing.id));
       return updatedSetting!;
     } else {
-      const newSetting = { id: randomUUID(), key, value };
+      const newSetting = { 
+        id: randomUUID(), 
+        key, 
+        value: value,
+        category: key.startsWith('whatsapp_') ? 'whatsapp' : 'general',
+        isEncrypted: key.includes('token') || key.includes('secret')
+      };
       await db.insert(settings).values(newSetting);
       // Query the created setting
       const [createdSetting] = await db.select().from(settings).where(eq(settings.key, key));
