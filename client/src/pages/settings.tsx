@@ -244,18 +244,50 @@ export default function Settings() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto">
-          <Tabs defaultValue="whatsapp" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="whatsapp">WhatsApp API</TabsTrigger>
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="admin">Admin</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <Tabs defaultValue="whatsapp" className="space-y-8">
+            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-100 to-slate-200 dark:from-gray-800 dark:to-gray-700 p-2 rounded-xl shadow-lg border-2 border-slate-200 dark:border-gray-600">
+              <TabsTrigger 
+                value="whatsapp" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:transform data-[state=active]:scale-105 transition-all duration-300 font-medium rounded-lg px-4 py-3 flex items-center gap-2"
+              >
+                <i className="fab fa-whatsapp text-lg"></i>
+                <span className="hidden sm:inline">WhatsApp API</span>
+                <span className="sm:hidden">API</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="general" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:transform data-[state=active]:scale-105 transition-all duration-300 font-medium rounded-lg px-4 py-3 flex items-center gap-2"
+              >
+                <i className="fas fa-cogs text-lg"></i>
+                <span className="hidden sm:inline">General</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="admin" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:transform data-[state=active]:scale-105 transition-all duration-300 font-medium rounded-lg px-4 py-3 flex items-center gap-2"
+              >
+                <i className="fas fa-user-shield text-lg"></i>
+                <span className="hidden sm:inline">Admin</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="notifications" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:transform data-[state=active]:scale-105 transition-all duration-300 font-medium rounded-lg px-4 py-3 flex items-center gap-2"
+              >
+                <i className="fas fa-bell text-lg"></i>
+                <span className="hidden sm:inline">Notifications</span>
+                <span className="sm:hidden">Bell</span>
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="whatsapp" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>WhatsApp Business API Configuration</CardTitle>
+            <TabsContent value="whatsapp" className="space-y-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+              <Card className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-800 dark:to-gray-700 border-green-200 dark:border-gray-600 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3 text-xl">
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                      <i className="fab fa-whatsapp text-white text-xl"></i>
+                    </div>
+                    WhatsApp Business API Configuration
+                  </CardTitle>
+                  <p className="text-green-100 text-sm mt-2">Connect your WhatsApp Business account to send messages</p>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleWhatsAppUpdate} className="space-y-4">
@@ -339,9 +371,15 @@ export default function Settings() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Current Configuration</CardTitle>
+              <Card className="bg-gradient-to-br from-emerald-50 to-green-100 dark:from-gray-800 dark:to-gray-700 border-emerald-200 dark:border-gray-600 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-info-circle text-white"></i>
+                    </div>
+                    Current Configuration
+                  </CardTitle>
+                  <p className="text-emerald-100 text-sm mt-2">View your current WhatsApp API settings</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -383,11 +421,17 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="admin" className="space-y-6">
+            <TabsContent value="admin" className="space-y-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
               {/* User Profile Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Profile</CardTitle>
+              <Card className="bg-gradient-to-br from-purple-50 to-pink-100 dark:from-gray-800 dark:to-gray-700 border-purple-200 dark:border-gray-600 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-user-circle text-white"></i>
+                    </div>
+                    User Profile
+                  </CardTitle>
+                  <p className="text-purple-100 text-sm mt-2">Manage your account information</p>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center space-x-4 mb-6">
@@ -452,9 +496,15 @@ export default function Settings() {
               </Card>
 
               {/* Change Password Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
+              <Card className="bg-gradient-to-br from-red-50 to-pink-100 dark:from-gray-800 dark:to-gray-700 border-red-200 dark:border-gray-600 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-key text-white"></i>
+                    </div>
+                    Change Password
+                  </CardTitle>
+                  <p className="text-red-100 text-sm mt-2">Update your account password for security</p>
                 </CardHeader>
                 <CardContent>
                   <Form {...passwordForm}>
@@ -507,9 +557,15 @@ export default function Settings() {
               </Card>
 
               {/* Company Logo Upload Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Company Logo</CardTitle>
+              <Card className="bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-gray-800 dark:to-gray-700 border-indigo-200 dark:border-gray-600 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-image text-white"></i>
+                    </div>
+                    Company Logo
+                  </CardTitle>
+                  <p className="text-indigo-100 text-sm mt-2">Upload your company logo for branding</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -552,7 +608,7 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="general" className="space-y-6">
+            <TabsContent value="general" className="space-y-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
               <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 dark:from-gray-800 dark:to-gray-700 border-emerald-200 dark:border-gray-600">
                 <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-3">
@@ -748,10 +804,16 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="notifications" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
+            <TabsContent value="notifications" className="space-y-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+              <Card className="bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-800 dark:to-gray-700 border-orange-200 dark:border-gray-600 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-bell text-white"></i>
+                    </div>
+                    Notification Preferences
+                  </CardTitle>
+                  <p className="text-orange-100 text-sm mt-2">Configure how you receive notifications</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
