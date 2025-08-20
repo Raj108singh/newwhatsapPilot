@@ -7,6 +7,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db-mysql";
 import { eq, desc, and, or, sql } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import type { IStorage } from "./storage";
 
 export class DatabaseStorage implements IStorage {
@@ -47,7 +48,11 @@ export class DatabaseStorage implements IStorage {
 
   // User Sessions
   async createUserSession(session: InsertUserSession): Promise<UserSession> {
-    await db.insert(userSessions).values(session);
+    const sessionWithId = {
+      ...session,
+      id: randomUUID()
+    };
+    await db.insert(userSessions).values(sessionWithId);
     // Query the created session
     const [userSession] = await db.select().from(userSessions).where(eq(userSessions.token, session.token));
     if (!userSession) {

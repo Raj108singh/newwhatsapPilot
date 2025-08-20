@@ -1,0 +1,12 @@
+mysql: [Warning] Using a password on the command line interface can be insecure.
+Info
+Users table:
+id	username	password	email	name	role	is_active	last_login	created_at	updated_at
+49ed5d57-ddfe-473b-a9fc-618c5e4a1435	adminn	$2b$10$cs47u.LTAOeSAN6Tk2VqyO5tlRqSx669WIHJM8LR5HmIDkO866a9O	admin@whatsapppro.com	Administrator	admin	1	2025-08-20 10:51:31	2025-08-20 14:01:29	2025-08-20 10:51:31
+bfb200c2-cda1-409e-b7a2-3b18c6915fd7	admin	$2b$10$Lg8Ev.0qz76DABEo4cJ1gubQb.rr2iinCOwVmp7BIXsBSL6vLsna6	admin@whatsapppro.com	Administrator	admin	1	2025-08-20 10:55:49	2025-08-20 16:20:38	2025-08-20 10:55:49
+Info
+Settings table:
+Info
+Database structure:
+Table	Create Table
+users	CREATE TABLE `users` (\n  `id` varchar(255) NOT NULL,\n  `username` varchar(100) NOT NULL,\n  `password` varchar(255) NOT NULL,\n  `email` varchar(150) DEFAULT NULL,\n  `name` varchar(150) DEFAULT NULL,\n  `role` varchar(50) DEFAULT 'user',\n  `is_active` tinyint(1) DEFAULT 1,\n  `last_login` timestamp NULL DEFAULT NULL,\n  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),\n  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `username` (`username`)\n) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci
