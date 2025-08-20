@@ -37,7 +37,7 @@ export default function ChatMessage({ message, contact }: ChatMessageProps) {
         </div>
       )}
       
-      <div className={cn("flex flex-col", isInbound ? "items-start max-w-[70%]" : "items-end max-w-[70%]")}>
+      <div className={cn("flex flex-col w-full", isInbound ? "items-start" : "items-end")}>
         <div className={cn(
           "flex items-center space-x-2 mb-1 text-xs",
           isInbound ? "justify-start" : "justify-end"
@@ -48,10 +48,10 @@ export default function ChatMessage({ message, contact }: ChatMessageProps) {
           <span className="text-slate-400">{message.phoneNumber.slice(-4)}</span>
         </div>
         <div className={cn(
-          message.messageType === "template" ? "max-w-full" : "rounded-lg p-3 text-sm max-w-full break-words",
+          message.messageType === "template" ? "w-full max-w-md" : "rounded-lg p-3 text-sm w-full max-w-md break-words",
           message.messageType !== "template" && (isInbound 
             ? "bg-white border border-slate-200 text-slate-700" 
-            : "bg-green-500 text-white ml-auto")
+            : "bg-green-500 text-white")
         )}>
           {message.messageType === "template" ? (
             <TemplateMessage

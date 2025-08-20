@@ -21,7 +21,7 @@ export default function TemplateCreationDialog({ onCreateTemplate, children }: T
   const [formData, setFormData] = useState({
     name: '',
     category: 'marketing',
-    language: 'en',
+    language: 'en_US',
     headerType: 'none',
     headerText: '',
     headerImage: '',
@@ -106,7 +106,7 @@ export default function TemplateCreationDialog({ onCreateTemplate, children }: T
     setFormData({
       name: '',
       category: 'marketing',
-      language: 'en',
+      language: 'en_US',
       headerType: 'none',
       headerText: '',
       headerImage: '',
@@ -293,7 +293,7 @@ export default function TemplateCreationDialog({ onCreateTemplate, children }: T
               </div>
 
               {/* Basic Template Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="name">Template Name</Label>
                   <Input
@@ -314,6 +314,28 @@ export default function TemplateCreationDialog({ onCreateTemplate, children }: T
                       <SelectItem value="marketing">Marketing</SelectItem>
                       <SelectItem value="utility">Utility</SelectItem>
                       <SelectItem value="authentication">Authentication</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="language">Language</Label>
+                  <Select value={formData.language} onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en_US">English (US)</SelectItem>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="te">Telugu</SelectItem>
+                      <SelectItem value="hi">Hindi</SelectItem>
+                      <SelectItem value="ta">Tamil</SelectItem>
+                      <SelectItem value="kn">Kannada</SelectItem>
+                      <SelectItem value="ml">Malayalam</SelectItem>
+                      <SelectItem value="mr">Marathi</SelectItem>
+                      <SelectItem value="gu">Gujarati</SelectItem>
+                      <SelectItem value="bn">Bengali</SelectItem>
+                      <SelectItem value="or">Odia</SelectItem>
+                      <SelectItem value="pa">Punjabi</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

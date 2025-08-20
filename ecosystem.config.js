@@ -6,20 +6,17 @@ module.exports = {
     exec_mode: 'cluster',
     env: {
       NODE_ENV: 'production',
-      PORT: 5000,
-      HOST: '0.0.0.0'
+      PORT: 5000
     },
     env_production: {
       NODE_ENV: 'production',
-      PORT: 5000,
-      HOST: '0.0.0.0'
+      PORT: 5000
     },
-    error_file: './logs/err.log',
-    out_file: './logs/out.log',
     log_file: './logs/combined.log',
-    time: true,
+    out_file: './logs/out.log',
+    error_file: './logs/error.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     max_memory_restart: '1G',
-    watch: false,
-    autorestart: true
+    node_args: '--max-old-space-size=1024'
   }]
-}
+};
