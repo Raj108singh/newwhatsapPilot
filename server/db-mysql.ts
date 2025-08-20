@@ -7,9 +7,8 @@ let connectionConfig: any;
 
 if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql://')) {
   // Use MySQL connection string
-  connectionConfig = {
-    uri: process.env.DATABASE_URL,
-  };
+  connectionConfig = process.env.DATABASE_URL;
+  console.log('✅ Using MySQL DATABASE_URL for database connection');
 } else {
   // Default MySQL configuration for local development
   console.log('⚠️  No MySQL DATABASE_URL found. Using default local MySQL configuration.');
@@ -26,11 +25,21 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql://'))
 }
 
 // Create MySQL connection pool
-export const connection = mysql.createPool({
-  ...connectionConfig,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
+export const connection = mysql.createPool(
+  typeof connectionConfig === 'string' 
+    ? {
+        uri: connectionConfig,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      }
+    : {
+        ...connectionConfig,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+      }
+);
 
 export const db = drizzle(connection, { schema, mode: 'default' });

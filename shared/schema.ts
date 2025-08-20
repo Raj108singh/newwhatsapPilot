@@ -1,10 +1,10 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, json, integer, boolean, uuid } from "drizzle-orm/pg-core";
+import { mysqlTable, text, varchar, timestamp, json, int, boolean } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const users = mysqlTable("users", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email").notNull().unique(),
@@ -16,8 +16,8 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const templates = pgTable("templates", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const templates = mysqlTable("templates", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   name: text("name").notNull(),
   category: text("category").notNull(), // marketing, transactional, utility
   language: text("language").notNull().default("en"),
@@ -27,42 +27,42 @@ export const templates = pgTable("templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const messages = pgTable("messages", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const messages = mysqlTable("messages", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   phoneNumber: text("phone_number").notNull(),
   content: text("content").notNull(),
   direction: text("direction").notNull(), // inbound, outbound
   messageType: text("message_type").notNull().default("text"), // text, template, media
   status: text("status").notNull().default("sent"), // sent, delivered, read, failed
   statusUpdatedAt: timestamp("status_updated_at").defaultNow(),
-  templateId: uuid("template_id"),
+  templateId: varchar("template_id", { length: 36 }),
   templateData: json("template_data"), // Complete template data with all components
   mediaUrl: text("media_url"), // For images, videos, documents
   buttons: json("buttons"), // For interactive buttons
   isAutoReply: boolean("is_auto_reply").notNull().default(false),
-  autoReplyTriggerId: uuid("auto_reply_trigger_id"), // Reference to auto reply trigger
-  conversationId: uuid("conversation_id"), // Group messages by conversation
+  autoReplyTriggerId: varchar("auto_reply_trigger_id", { length: 36 }), // Reference to auto reply trigger
+  conversationId: varchar("conversation_id", { length: 36 }), // Group messages by conversation
   whatsappMessageId: text("whatsapp_message_id"), // WhatsApp's message ID for tracking
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const campaigns = pgTable("campaigns", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const campaigns = mysqlTable("campaigns", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   name: text("name").notNull(),
-  templateId: uuid("template_id").notNull(),
+  templateId: varchar("template_id", { length: 36 }).notNull(),
   recipients: json("recipients").notNull(), // array of phone numbers
   status: text("status").notNull().default("pending"), // pending, running, completed, failed
-  totalRecipients: integer("total_recipients").notNull(),
-  sentCount: integer("sent_count").notNull().default(0),
-  deliveredCount: integer("delivered_count").notNull().default(0),
-  failedCount: integer("failed_count").notNull().default(0),
+  totalRecipients: int("total_recipients").notNull(),
+  sentCount: int("sent_count").notNull().default(0),
+  deliveredCount: int("delivered_count").notNull().default(0),
+  failedCount: int("failed_count").notNull().default(0),
   scheduledAt: timestamp("scheduled_at"),
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });
 
-export const contacts = pgTable("contacts", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const contacts = mysqlTable("contacts", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   phoneNumber: text("phone_number").notNull().unique(),
   name: text("name"),
   email: text("email"),
@@ -70,8 +70,8 @@ export const contacts = pgTable("contacts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const settings = pgTable("settings", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const settings = mysqlTable("settings", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   key: text("key").notNull().unique(),
   value: json("value").notNull(),
   category: text("category").notNull().default("general"), // general, whatsapp, notifications, branding
@@ -81,39 +81,39 @@ export const settings = pgTable("settings", {
 });
 
 // Auto Reply Rules for Chatbot
-export const autoReplyRules = pgTable("auto_reply_rules", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const autoReplyRules = mysqlTable("auto_reply_rules", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   name: text("name").notNull(),
   trigger: text("trigger").notNull(), // keyword or phrase to trigger
   triggerType: text("trigger_type").notNull().default("keyword"), // keyword, greeting, default
   replyMessage: text("reply_message").notNull(),
-  templateId: uuid("template_id"), // Use template instead of plain text
+  templateId: varchar("template_id", { length: 36 }), // Use template instead of plain text
   isActive: boolean("is_active").notNull().default(true),
-  priority: integer("priority").notNull().default(1), // Higher number = higher priority
+  priority: int("priority").notNull().default(1), // Higher number = higher priority
   conditions: json("conditions"), // Additional conditions (time, sender, etc.)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Conversations for grouping messages
-export const conversations = pgTable("conversations", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const conversations = mysqlTable("conversations", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   phoneNumber: text("phone_number").notNull().unique(),
   contactName: text("contact_name"),
   lastMessage: text("last_message"),
   lastMessageAt: timestamp("last_message_at").defaultNow(),
-  unreadCount: integer("unread_count").notNull().default(0),
+  unreadCount: int("unread_count").notNull().default(0),
   status: text("status").notNull().default("active"), // active, archived, blocked
-  assignedTo: uuid("assigned_to"), // User ID who handles this conversation
+  assignedTo: varchar("assigned_to", { length: 36 }), // User ID who handles this conversation
   tags: json("tags"), // array of strings
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // User Sessions for authentication
-export const userSessions = pgTable("user_sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull(),
+export const userSessions = mysqlTable("user_sessions", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
+  userId: varchar("user_id", { length: 36 }).notNull(),
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
   isActive: boolean("is_active").notNull().default(true),

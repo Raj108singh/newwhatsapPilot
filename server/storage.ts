@@ -98,6 +98,21 @@ export class MemStorage implements IStorage {
   }
 
   private initSampleData() {
+    // Initialize default admin user for login
+    const defaultUser: User = {
+      id: randomUUID(),
+      username: "admin",
+      password: "$2b$10$8K1p/a0dCVTZKYwGd3wS1eOyBvDvSsaI2hKBzL1Zm2mBUGl8vqj6K", // password: admin123
+      email: "admin@whatsapppro.com",
+      name: "Administrator",
+      role: "admin",
+      isActive: true,
+      lastLogin: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(defaultUser.id, defaultUser);
+
     // Sample templates
     const welcomeTemplate: Template = {
       id: randomUUID(),
@@ -133,7 +148,12 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     this.users.set(id, user);
     return user;
   }
@@ -150,7 +170,11 @@ export class MemStorage implements IStorage {
   // User Sessions
   async createUserSession(session: InsertUserSession): Promise<UserSession> {
     const id = randomUUID();
-    const userSession: UserSession = { ...session, id };
+    const userSession: UserSession = { 
+      ...session, 
+      id,
+      createdAt: new Date(),
+    };
     this.userSessions.set(session.token, userSession);
     return userSession;
   }
@@ -437,6 +461,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use DatabaseStorage with enhanced features
-import { DatabaseStorage } from "./database-storage";
-export const storage = new DatabaseStorage();
+// Use in-memory storage for now due to remote database connectivity
+// TODO: Switch to DatabaseStorage when VPS connectivity is resolved
+export const storage = new MemStorage();
