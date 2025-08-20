@@ -257,16 +257,32 @@ class EnhancedWhatsAppService {
     let paramIndex = 0;
     
     parsedComponents.forEach((component: any) => {
-      if (component.type === "HEADER" && component.format === "TEXT" && component.text) {
-        const headerMatches = component.text.match(/\{\{(\d+)\}\}/g);
-        if (headerMatches && parameters.length > 0) {
-          components.push({
-            type: "header",
-            parameters: headerMatches.map(() => ({
-              type: "text",
-              text: parameters[paramIndex++] || ""
-            }))
-          });
+      if (component.type === "HEADER") {
+        if (component.format === "TEXT" && component.text) {
+          const headerMatches = component.text.match(/\{\{(\d+)\}\}/g);
+          if (headerMatches && parameters.length > 0) {
+            components.push({
+              type: "header",
+              parameters: headerMatches.map(() => ({
+                type: "text",
+                text: parameters[paramIndex++] || ""
+              }))
+            });
+          }
+        } else if (component.format === "IMAGE") {
+          // For IMAGE headers, we need to provide an image parameter
+          // If no image URL is provided in parameters, skip the header component
+          if (parameters.length > paramIndex && parameters[paramIndex]) {
+            components.push({
+              type: "header",
+              parameters: [{
+                type: "image",
+                image: {
+                  link: parameters[paramIndex++]
+                }
+              }]
+            });
+          }
         }
       }
       
