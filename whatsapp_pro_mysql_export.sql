@@ -1,12 +1,24 @@
--- WhatsApp Pro MySQL Database Export
+-- WhatsApp Pro MySQL Database Export - FRESH VERSION
 -- Generated on 2025-08-20 for PHP Admin Panel
 -- Database: niharsk_whatsapp_raj
 -- Host: 103.38.50.233:3306
+-- Updated with corrected table structure
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
+
+-- Drop existing tables if they exist
+DROP TABLE IF EXISTS user_sessions;
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS campaigns;
+DROP TABLE IF EXISTS conversations;
+DROP TABLE IF EXISTS contacts;
+DROP TABLE IF EXISTS templates;
+DROP TABLE IF EXISTS auto_reply_rules;
+DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS users;
 
 -- --------------------------------------------------------
 -- Table structure for table `users`
