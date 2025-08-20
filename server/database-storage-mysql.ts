@@ -27,7 +27,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    await db.insert(users).values(insertUser);
+    const userWithId = {
+      ...insertUser,
+      id: randomUUID()
+    };
+    await db.insert(users).values(userWithId);
     // MySQL doesn't support .returning(), so we query the created user
     const [user] = await db.select().from(users).where(eq(users.username, insertUser.username));
     if (!user) {
@@ -96,7 +100,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTemplate(template: InsertTemplate): Promise<Template> {
-    await db.insert(templates).values(template);
+    const templateWithId = {
+      ...template,
+      id: randomUUID()
+    };
+    await db.insert(templates).values(templateWithId);
     // Query the created template
     const [newTemplate] = await db.select().from(templates).where(eq(templates.name, template.name));
     if (!newTemplate) {
@@ -131,7 +139,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
-    await db.insert(messages).values(message);
+    const messageWithId = {
+      ...message,
+      id: randomUUID()
+    };
+    await db.insert(messages).values(messageWithId);
     
     // Update conversation
     if (message.conversationId) {
@@ -195,7 +207,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createConversation(conversation: InsertConversation): Promise<Conversation> {
-    await db.insert(conversations).values(conversation);
+    const conversationWithId = {
+      ...conversation,
+      id: randomUUID()
+    };
+    await db.insert(conversations).values(conversationWithId);
     // Query the created conversation
     const [newConversation] = await db.select().from(conversations).where(eq(conversations.phoneNumber, conversation.phoneNumber));
     if (!newConversation) {
@@ -220,9 +236,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAutoReplyRule(rule: InsertAutoReplyRule): Promise<AutoReplyRule> {
-    await db.insert(autoReplyRules).values(rule);
+    const ruleWithId = {
+      ...rule,
+      id: randomUUID()
+    };
+    await db.insert(autoReplyRules).values(ruleWithId);
     // Query the created rule
-    const [newRule] = await db.select().from(autoReplyRules).where(eq(autoReplyRules.keyword, rule.keyword));
+    const [newRule] = await db.select().from(autoReplyRules).where(eq(autoReplyRules.trigger, rule.trigger));
     if (!newRule) {
       throw new Error('Failed to create auto reply rule');
     }
@@ -240,8 +260,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAutoReplyRule(id: string): Promise<boolean> {
-    const result = await db.delete(autoReplyRules).where(eq(autoReplyRules.id, id));
-    return result.affectedRows > 0;
+    await db.delete(autoReplyRules).where(eq(autoReplyRules.id, id));
+    return true;
   }
 
   // Campaigns
@@ -255,7 +275,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    await db.insert(campaigns).values(campaign);
+    const campaignWithId = {
+      ...campaign,
+      id: randomUUID()
+    };
+    await db.insert(campaigns).values(campaignWithId);
     // Query the created campaign
     const [newCampaign] = await db.select().from(campaigns).where(eq(campaigns.name, campaign.name));
     if (!newCampaign) {
@@ -285,7 +309,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContact(contact: InsertContact): Promise<Contact> {
-    await db.insert(contacts).values(contact);
+    const contactWithId = {
+      ...contact,
+      id: randomUUID()
+    };
+    await db.insert(contacts).values(contactWithId);
     // Query the created contact
     const [newContact] = await db.select().from(contacts).where(eq(contacts.phoneNumber, contact.phoneNumber));
     if (!newContact) {
@@ -339,7 +367,7 @@ export class DatabaseStorage implements IStorage {
       const [updatedSetting] = await db.select().from(settings).where(eq(settings.id, existing.id));
       return updatedSetting!;
     } else {
-      const newSetting = { key, value };
+      const newSetting = { id: randomUUID(), key, value };
       await db.insert(settings).values(newSetting);
       // Query the created setting
       const [createdSetting] = await db.select().from(settings).where(eq(settings.key, key));
