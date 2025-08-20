@@ -64,40 +64,40 @@ export default function BulkMessage() {
 
   // WebSocket listener for real-time progress updates
   useEffect(() => {
-    const ws = websocketManager.getWebSocket();
-    if (!ws) return;
+    // Set up campaign progress handler
+    websocketManager.onMessage('campaign_progress', (data) => {
+      setCampaignProgress(prev => ({
+        ...prev,
+        [data.campaignId]: data
+      }));
+    });
+    
+    // Set up campaign completion handler
+    websocketManager.onMessage('campaign_completed', (data) => {
+      setCampaignProgress(prev => {
+        const newProgress = { ...prev };
+        delete newProgress[data.campaignId];
+        return newProgress;
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+    });
+    
+    // Set up campaign failure handler
+    websocketManager.onMessage('campaign_failed', (data) => {
+      setCampaignProgress(prev => {
+        const newProgress = { ...prev };
+        delete newProgress[data.campaignId];
+        return newProgress;
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+    });
 
-    const handleMessage = (event: MessageEvent) => {
-      const message = JSON.parse(event.data);
-      
-      if (message.type === 'campaign_progress') {
-        setCampaignProgress(prev => ({
-          ...prev,
-          [message.data.campaignId]: message.data
-        }));
-      }
-      
-      if (message.type === 'campaign_completed') {
-        setCampaignProgress(prev => {
-          const newProgress = { ...prev };
-          delete newProgress[message.data.campaignId];
-          return newProgress;
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
-      }
-      
-      if (message.type === 'campaign_failed') {
-        setCampaignProgress(prev => {
-          const newProgress = { ...prev };
-          delete newProgress[message.data.campaignId];
-          return newProgress;
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
-      }
+    // Cleanup on unmount
+    return () => {
+      websocketManager.removeHandler('campaign_progress');
+      websocketManager.removeHandler('campaign_completed');
+      websocketManager.removeHandler('campaign_failed');
     };
-
-    ws.addEventListener('message', handleMessage);
-    return () => ws.removeEventListener('message', handleMessage);
   }, [queryClient]);
 
   const formatTime = (seconds: number): string => {

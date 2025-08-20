@@ -253,7 +253,7 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                 
                 {selectedTemplate.components && Array.isArray(selectedTemplate.components) && (
                   <div className="space-y-2">
-                    {selectedTemplate.components.map((component: any, index: number) => (
+                    {(selectedTemplate.components as any[]).map((component: any, index: number) => (
                       <div key={index} className="text-sm">
                         {component.type === "HEADER" && (
                           <div className="bg-blue-50 p-2 rounded">
@@ -281,7 +281,7 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                           </div>
                         )}
                         
-                        {component.type === "BUTTONS" && (
+                        {component.type === "BUTTONS" && component.buttons && (
                           <div className="bg-green-50 p-2 rounded">
                             <div className="font-medium text-green-800">Buttons:</div>
                             <div className="space-y-1">
