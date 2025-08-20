@@ -98,21 +98,6 @@ export class MemStorage implements IStorage {
   }
 
   private initSampleData() {
-    // Initialize default admin user for login
-    const defaultUser: User = {
-      id: randomUUID(),
-      username: "admin",
-      password: "$2b$10$8K1p/a0dCVTZKYwGd3wS1eOyBvDvSsaI2hKBzL1Zm2mBUGl8vqj6K", // password: admin123
-      email: "admin@whatsapppro.com",
-      name: "Administrator",
-      role: "admin",
-      isActive: true,
-      lastLogin: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.users.set(defaultUser.id, defaultUser);
-
     // Sample templates
     const welcomeTemplate: Template = {
       id: randomUUID(),
@@ -151,6 +136,9 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
+      role: insertUser.role || "admin",
+      isActive: insertUser.isActive !== undefined ? insertUser.isActive : true,
+      lastLogin: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -173,6 +161,7 @@ export class MemStorage implements IStorage {
     const userSession: UserSession = { 
       ...session, 
       id,
+      isActive: session.isActive !== undefined ? session.isActive : true,
       createdAt: new Date(),
     };
     this.userSessions.set(session.token, userSession);
