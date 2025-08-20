@@ -9,6 +9,8 @@ import {
   BarChart3, Bot, MessageCircle, LogOut, User, Shield 
 } from "lucide-react";
 import { useLogout, useAuthStatus } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -25,6 +27,13 @@ export default function SidebarModern() {
   const { user } = useAuthStatus();
   const logoutMutation = useLogout();
 
+  // Load branding settings
+  const { data: brandingSettings } = useQuery({
+    queryKey: ['/api/settings'],
+    queryFn: () => apiRequest('/api/settings'),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
@@ -38,11 +47,24 @@ export default function SidebarModern() {
       {/* Logo Header */}
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+          {brandingSettings?.sidebar_logo ? (
+            <img 
+              src={brandingSettings.sidebar_logo} 
+              alt="Logo" 
+              className="w-8 h-8 object-contain"
+              onError={(e) => {
+                // Fallback to default icon if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                target.nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+          ) : null}
+          <div className={`w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center ${brandingSettings?.sidebar_logo ? 'hidden' : ''}`}>
             <MessageSquare className="w-4 h-4 text-white" />
           </div>
           <span className="text-xl font-semibold text-gray-900 dark:text-white">
-            WhatsApp Pro
+            {brandingSettings?.app_title || 'WhatsApp Pro'}
           </span>
         </div>
       </div>

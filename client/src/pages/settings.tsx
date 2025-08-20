@@ -24,7 +24,11 @@ export default function Settings() {
   const [generalSettings, setGeneralSettings] = useState({
     businessName: "",
     timezone: "",
-    company_logo: ""
+    company_logo: "",
+    sidebar_logo: "",
+    app_title: "WhatsApp Pro",
+    header_text: "Business Messaging Platform",
+    footer_text: "Powered by WhatsApp Pro"
   });
   const [currentSettings, setCurrentSettings] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -62,7 +66,11 @@ export default function Settings() {
         setGeneralSettings({
           businessName: settings.businessName || "",
           timezone: settings.timezone || "",
-          company_logo: settings.company_logo || ""
+          company_logo: settings.company_logo || "",
+          sidebar_logo: settings.sidebar_logo || "",
+          app_title: settings.app_title || "WhatsApp Pro",
+          header_text: settings.header_text || "Business Messaging Platform",
+          footer_text: settings.footer_text || "Powered by WhatsApp Pro"
         });
         
         // Also populate WhatsApp settings
@@ -223,7 +231,9 @@ export default function Settings() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
-            <p className="text-sm text-slate-500">Manage your WhatsApp Pro configuration</p>
+            <p className="text-sm text-slate-500">
+              {currentSettings?.header_text || 'Manage your WhatsApp Pro configuration'}
+            </p>
           </div>
         </div>
       </header>
@@ -566,25 +576,75 @@ export default function Settings() {
                         data-testid="input-timezone"
                       />
                     </div>
-                    <div className="flex justify-end pt-4">
-                      <Button 
-                        type="submit" 
-                        disabled={isSavingGeneral}
-                        data-testid="button-save-general"
-                      >
-                        {isSavingGeneral ? (
-                          <>
-                            <i className="fas fa-spinner fa-spin mr-2"></i>
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <i className="fas fa-save mr-2"></i>
-                            Save Changes
-                          </>
-                        )}
-                      </Button>
+                  </form>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Branding & Customization</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleGeneralUpdate} className="space-y-4">
+                    <div>
+                      <Label htmlFor="appTitle">Application Title</Label>
+                      <Input
+                        id="appTitle"
+                        value={generalSettings.app_title}
+                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, app_title: e.target.value }))}
+                        placeholder="WhatsApp Pro"
+                        data-testid="input-app-title"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        This appears in the sidebar and browser title
+                      </p>
                     </div>
+                    <div>
+                      <Label htmlFor="sidebarLogo">Sidebar Logo URL</Label>
+                      <Input
+                        id="sidebarLogo"
+                        value={generalSettings.sidebar_logo}
+                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, sidebar_logo: e.target.value }))}
+                        placeholder="https://example.com/logo.png (leave empty for default)"
+                        data-testid="input-sidebar-logo"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        URL to your logo image for the sidebar (recommended: 32x32px)
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="headerText">Header Text</Label>
+                      <Input
+                        id="headerText"
+                        value={generalSettings.header_text}
+                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, header_text: e.target.value }))}
+                        placeholder="Business Messaging Platform"
+                        data-testid="input-header-text"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Subtitle text that appears in page headers
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="footerText">Footer Text</Label>
+                      <Input
+                        id="footerText"
+                        value={generalSettings.footer_text}
+                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, footer_text: e.target.value }))}
+                        placeholder="Powered by WhatsApp Pro"
+                        data-testid="input-footer-text"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Text displayed at the bottom of pages
+                      </p>
+                    </div>
+                    <Button 
+                      type="submit" 
+                      disabled={isSavingGeneral}
+                      data-testid="button-save-branding"
+                    >
+                      {isSavingGeneral ? "Saving..." : "Save Branding Settings"}
+                    </Button>
                   </form>
                 </CardContent>
               </Card>
