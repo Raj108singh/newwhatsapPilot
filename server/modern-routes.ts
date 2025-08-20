@@ -198,25 +198,54 @@ class EnhancedWhatsAppService {
           });
         }
         
+        // Find or create conversation for this phone number
+        const cleanPhoneNumber = recipient.replace('+', ''); // Remove + for consistency
+        let conversation = await storage.getConversationByPhoneNumber(cleanPhoneNumber);
+        
+        if (!conversation) {
+          console.log('Creating new conversation for:', cleanPhoneNumber);
+          conversation = await storage.createConversation({
+            phoneNumber: cleanPhoneNumber,
+            contactName: cleanPhoneNumber, // Use phone number as name initially
+            lastMessage: actualContent,
+            lastMessageAt: new Date(),
+            unreadCount: 0
+          });
+        }
+        
         console.log('=== STORING MESSAGE IN DATABASE ===');
         console.log('Storing template message:', {
           recipient,
           content: actualContent,
-          templateName: template.name
+          templateName: template.name,
+          conversationId: conversation.id
         });
         
         const storedMessage = await storage.createMessage({
-          phoneNumber: recipient.replace('+', ''), // Remove + for consistency
+          phoneNumber: cleanPhoneNumber,
           content: actualContent,
           direction: 'outbound',
           messageType: 'template',
           status: 'sent',
           templateId: template.id,
           templateData: template.components as any,
+          conversationId: conversation.id,
         });
         
         console.log('=== MESSAGE STORED SUCCESSFULLY ===');
         console.log('Template message stored with ID:', storedMessage.id);
+        
+        // Update conversation with latest message info
+        await storage.updateConversation(conversation.id, {
+          lastMessage: actualContent,
+          lastMessageAt: new Date()
+        });
+        
+        // Broadcast message to WebSocket clients for real-time updates
+        broadcastMessage({
+          type: 'new_message',
+          data: storedMessage,
+        });
 
         // Broadcast progress update after each successful send
         if (broadcastProgress) {
