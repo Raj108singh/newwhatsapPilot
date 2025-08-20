@@ -576,11 +576,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Transform and store templates locally
       let savedCount = 0;
+      let updatedCount = 0;
       for (const template of templates) {
         try {
           const bodyComponent = template.components?.find((c: any) => c.type === 'BODY');
-          
-          await storage.createTemplate({
+          const templateData = {
             name: template.name,
             category: template.category?.toLowerCase() || 'marketing',
             language: template.language || 'en',
@@ -592,11 +592,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 text: bodyComponent?.text || `Template: ${template.name}`
               }
             ]
-          });
-          savedCount++;
+          };
+
+          // Check if template already exists
+          const existingTemplate = await storage.getTemplateByName(template.name);
+          
+          if (existingTemplate) {
+            // Update existing template
+            await storage.updateTemplate(existingTemplate.id, templateData);
+            updatedCount++;
+            console.log(`Updated existing template: ${template.name}`);
+          } else {
+            // Create new template
+            await storage.createTemplate(templateData);
+            savedCount++;
+            console.log(`Created new template: ${template.name}`);
+          }
         } catch (error) {
-          // Template might already exist, continue with next
-          console.log(`Template ${template.name} already exists, skipping...`);
+          console.error(`Error processing template ${template.name}:`, error);
         }
       }
       
@@ -605,6 +618,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Successfully refreshed templates from WhatsApp Business API`,
         totalFetched: templates.length,
         newTemplatesSaved: savedCount,
+        templatesUpdated: updatedCount,
         templates: templates.length 
       });
     } catch (error) {

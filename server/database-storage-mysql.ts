@@ -99,6 +99,11 @@ export class DatabaseStorage implements IStorage {
     return template;
   }
 
+  async getTemplateByName(name: string): Promise<Template | undefined> {
+    const [template] = await db.select().from(templates).where(eq(templates.name, name));
+    return template;
+  }
+
   async createTemplate(template: InsertTemplate): Promise<Template> {
     const templateWithId = {
       ...template,

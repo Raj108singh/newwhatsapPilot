@@ -25,6 +25,7 @@ export interface IStorage {
   // Templates
   getTemplates(): Promise<Template[]>;
   getTemplate(id: string): Promise<Template | undefined>;
+  getTemplateByName(name: string): Promise<Template | undefined>;
   createTemplate(template: InsertTemplate): Promise<Template>;
   updateTemplate(id: string, template: Partial<InsertTemplate>): Promise<Template | undefined>;
   deleteTemplate(id: string): Promise<boolean>;
@@ -204,6 +205,10 @@ export class MemStorage implements IStorage {
 
   async getTemplate(id: string): Promise<Template | undefined> {
     return this.templates.get(id);
+  }
+
+  async getTemplateByName(name: string): Promise<Template | undefined> {
+    return Array.from(this.templates.values()).find(t => t.name === name);
   }
 
   async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
