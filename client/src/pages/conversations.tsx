@@ -12,7 +12,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { MessageCircle, Send, User, Clock, Check, CheckCheck, Phone } from "lucide-react";
+import { MessageCircle, Send, User, Clock, Check, CheckCheck, Phone, Search, X } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { enIN } from "date-fns/locale";
 import { apiRequest } from "@/lib/queryClient";
@@ -24,6 +24,8 @@ export default function ConversationsPage() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -42,6 +44,13 @@ export default function ConversationsPage() {
   const sortedMessages = [...messages].sort((a, b) => 
     new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
   );
+
+  // Filter messages based on search term
+  const filteredMessages = searchTerm
+    ? sortedMessages.filter(message => 
+        message.content.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : sortedMessages;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -297,22 +306,67 @@ export default function ConversationsPage() {
             {selectedConversation ? (
               <>
                 {/* Chat Header - WhatsApp Style */}
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-green-600 text-white">
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <AvatarFallback className="bg-white text-green-600 font-bold">
-                        {getInitials(selectedConversation.phoneNumber)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-semibold text-white">
-                        {selectedConversation.contactName || selectedConversation.phoneNumber}
-                      </h3>
-                      <p className="text-sm text-green-100">
-                        {selectedConversation.phoneNumber} • Active now
-                      </p>
+                <div className="border-b border-gray-200 dark:border-gray-700 bg-green-600 text-white">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          <AvatarFallback className="bg-white text-green-600 font-bold">
+                            {getInitials(selectedConversation.phoneNumber)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-semibold text-white">
+                            {selectedConversation.contactName || selectedConversation.phoneNumber}
+                          </h3>
+                          <p className="text-sm text-green-100">
+                            {selectedConversation.phoneNumber} • Active now
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowSearch(!showSearch)}
+                        className="text-white hover:bg-green-700"
+                        data-testid="button-toggle-search"
+                      >
+                        <Search className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
+                  
+                  {/* Search Bar */}
+                  {showSearch && (
+                    <div className="px-4 pb-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          type="text"
+                          placeholder="Search messages..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 pr-10 bg-white text-black"
+                          data-testid="input-search-messages"
+                        />
+                        {searchTerm && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSearchTerm("")}
+                            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {searchTerm && (
+                        <p className="text-sm text-green-100 mt-2">
+                          {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''} found
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Messages Area - WhatsApp Chat Background */}
@@ -335,15 +389,16 @@ export default function ConversationsPage() {
                         <p className="text-sm text-center mt-2">Start a conversation by sending a message</p>
                       </div>
                     ) : (
-                      sortedMessages.map((message: Message) => (
-                        <ChatMessage 
-                          key={message.id}
-                          message={message}
-                          contact={{
-                            name: selectedConversation.contactName || `Contact ${message.phoneNumber.slice(-4)}`,
-                            phoneNumber: message.phoneNumber
-                          }}
-                        />
+                      filteredMessages.map((message: Message, index) => (
+                        <div key={message.id} className={searchTerm && message.content.toLowerCase().includes(searchTerm.toLowerCase()) ? "bg-yellow-100 dark:bg-yellow-900/20 rounded-lg p-2 -m-2" : ""}>
+                          <ChatMessage 
+                            message={message}
+                            contact={{
+                              name: selectedConversation.contactName || `Contact ${message.phoneNumber.slice(-4)}`,
+                              phoneNumber: message.phoneNumber
+                            }}
+                          />
+                        </div>
                       ))
                     )}
                   </div>
