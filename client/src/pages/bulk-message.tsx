@@ -115,20 +115,37 @@ export default function BulkMessage() {
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-slate-900">{campaign.totalRecipients}</p>
+                        <p className="text-2xl font-bold text-slate-900">{campaign.totalRecipients.toLocaleString()}</p>
                         <p className="text-sm text-slate-500">Total Recipients</p>
+                        <div className="mt-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {campaign.totalRecipients} people
+                          </Badge>
+                        </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-green-600">{campaign.sentCount}</p>
+                        <p className="text-2xl font-bold text-green-600">{campaign.sentCount.toLocaleString()}</p>
                         <p className="text-sm text-slate-500">Sent</p>
+                        <div className="mt-1 flex items-center justify-center">
+                          <i className="fas fa-check text-gray-400 mr-1"></i>
+                          <span className="text-xs text-gray-600">Messages sent</span>
+                        </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-blue-600">{campaign.deliveredCount}</p>
+                        <p className="text-2xl font-bold text-blue-600">{campaign.deliveredCount.toLocaleString()}</p>
                         <p className="text-sm text-slate-500">Delivered</p>
+                        <div className="mt-1 flex items-center justify-center">
+                          <i className="fas fa-check-double text-gray-400 mr-1"></i>
+                          <span className="text-xs text-gray-600">Delivered</span>
+                        </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-red-600">{campaign.failedCount}</p>
+                        <p className="text-2xl font-bold text-red-600">{campaign.failedCount.toLocaleString()}</p>
                         <p className="text-sm text-slate-500">Failed</p>
+                        <div className="mt-1 flex items-center justify-center">
+                          <i className="fas fa-exclamation-triangle text-red-400 mr-1"></i>
+                          <span className="text-xs text-red-600">Failed to send</span>
+                        </div>
                       </div>
                     </div>
                     

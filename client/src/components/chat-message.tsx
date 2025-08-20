@@ -70,13 +70,22 @@ export default function ChatMessage({ message, contact }: ChatMessageProps) {
             )}>
               <span>{timeAgo}</span>
               {!isInbound && (
-                <i className={cn(
-                  "fas",
-                  message.status === "delivered" ? "fa-check-double text-blue-300" :
-                  message.status === "sent" ? "fa-check" :
-                  message.status === "failed" ? "fa-exclamation-triangle text-red-300" :
-                  "fa-clock"
-                )}></i>
+                <div className="flex items-center">
+                  {message.status === "read" || message.status === "seen" ? (
+                    <i className="fas fa-check-double text-blue-500"></i>
+                  ) : message.status === "delivered" ? (
+                    <i className="fas fa-check-double text-gray-400"></i>
+                  ) : message.status === "sent" ? (
+                    <i className="fas fa-check text-gray-400"></i>
+                  ) : message.status === "failed" ? (
+                    <i className="fas fa-exclamation-triangle text-red-400"></i>
+                  ) : (
+                    <i className="fas fa-clock text-gray-400"></i>
+                  )}
+                  {message.isAutoReply && (
+                    <span className="ml-1 text-xs bg-green-200 text-green-800 px-1 rounded">AUTO</span>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -88,13 +97,22 @@ export default function ChatMessage({ message, contact }: ChatMessageProps) {
           )}>
             <span>{timeAgo}</span>
             {!isInbound && (
-              <i className={cn(
-                "fas",
-                message.status === "delivered" ? "fa-check-double text-green-300" :
-                message.status === "sent" ? "fa-check" :
-                message.status === "failed" ? "fa-exclamation-triangle text-red-300" :
-                "fa-clock"
-              )}></i>
+              <div className="flex items-center">
+                {message.status === "read" || message.status === "seen" ? (
+                  <i className="fas fa-check-double text-blue-500"></i>
+                ) : message.status === "delivered" ? (
+                  <i className="fas fa-check-double text-gray-300"></i>
+                ) : message.status === "sent" ? (
+                  <i className="fas fa-check text-gray-300"></i>
+                ) : message.status === "failed" ? (
+                  <i className="fas fa-exclamation-triangle text-red-400"></i>
+                ) : (
+                  <i className="fas fa-clock text-gray-300"></i>
+                )}
+                {message.isAutoReply && (
+                  <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 rounded">AUTO</span>
+                )}
+              </div>
             )}
           </div>
         )}

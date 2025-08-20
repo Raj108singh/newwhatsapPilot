@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import ChatMessage from "@/components/chat-message";
 import BulkMessageModal from "@/components/bulk-message-modal";
 import { websocketManager } from "@/lib/websocket";
@@ -410,7 +411,14 @@ export default function Dashboard() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-sm text-slate-900">{campaign.totalRecipients.toLocaleString()}</td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-slate-900">{campaign.totalRecipients.toLocaleString()}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {campaign.sentCount}/{campaign.totalRecipients}
+                            </Badge>
+                          </div>
+                        </td>
                         <td className="py-4 px-6">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             campaign.status === 'completed' ? 'bg-green-100 text-green-800' :
