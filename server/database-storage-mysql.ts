@@ -36,17 +36,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: string, userData: Partial<InsertUser>): Promise<User | undefined> {
-    const [user] = await db
+    await db
       .update(users)
       .set({ ...userData, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
+      .where(eq(users.id, id));
+    // Query the updated user
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   // User Sessions
   async createUserSession(session: InsertUserSession): Promise<UserSession> {
-    const [userSession] = await db.insert(userSessions).values(session).returning();
+    await db.insert(userSessions).values(session);
+    // Query the created session
+    const [userSession] = await db.select().from(userSessions).where(eq(userSessions.token, session.token));
+    if (!userSession) {
+      throw new Error('Failed to create user session');
+    }
     return userSession;
   }
 
@@ -63,7 +69,7 @@ export class DatabaseStorage implements IStorage {
       .update(userSessions)
       .set({ isActive: false })
       .where(eq(userSessions.token, token));
-    return result.rowCount > 0;
+    return result.affectedRows > 0;
   }
 
   async deleteUserSessions(userId: string): Promise<boolean> {
@@ -71,7 +77,7 @@ export class DatabaseStorage implements IStorage {
       .update(userSessions)
       .set({ isActive: false })
       .where(eq(userSessions.userId, userId));
-    return result.rowCount > 0;
+    return result.affectedRows > 0;
   }
 
   // Templates
@@ -85,22 +91,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTemplate(template: InsertTemplate): Promise<Template> {
-    const [newTemplate] = await db.insert(templates).values(template).returning();
+    await db.insert(templates).values(template);
+    // Query the created template
+    const [newTemplate] = await db.select().from(templates).where(eq(templates.name, template.name));
+    if (!newTemplate) {
+      throw new Error('Failed to create template');
+    }
     return newTemplate;
   }
 
   async updateTemplate(id: string, templateData: Partial<InsertTemplate>): Promise<Template | undefined> {
-    const [template] = await db
+    await db
       .update(templates)
       .set({ ...templateData, updatedAt: new Date() })
-      .where(eq(templates.id, id))
-      .returning();
+      .where(eq(templates.id, id));
+    // Query the updated template
+    const [template] = await db.select().from(templates).where(eq(templates.id, id));
     return template;
   }
 
   async deleteTemplate(id: string): Promise<boolean> {
     const result = await db.delete(templates).where(eq(templates.id, id));
-    return result.rowCount > 0;
+    return result.affectedRows > 0;
   }
 
   // Messages
@@ -114,7 +126,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
-    const [newMessage] = await db.insert(messages).values(message).returning();
+    await db.insert(messages).values(message);
     
     // Update conversation
     if (message.conversationId) {
@@ -125,15 +137,21 @@ export class DatabaseStorage implements IStorage {
       });
     }
     
+    // Query the created message
+    const [newMessage] = await db.select().from(messages).where(eq(messages.phoneNumber, message.phoneNumber)).orderBy(desc(messages.createdAt)).limit(1);
+    if (!newMessage) {
+      throw new Error('Failed to create message');
+    }
     return newMessage;
   }
 
   async updateMessage(id: string, messageData: Partial<InsertMessage>): Promise<Message | undefined> {
-    const [message] = await db
+    await db
       .update(messages)
       .set({ ...messageData, statusUpdatedAt: new Date() })
-      .where(eq(messages.id, id))
-      .returning();
+      .where(eq(messages.id, id));
+    // Query the updated message
+    const [message] = await db.select().from(messages).where(eq(messages.id, id));
     return message;
   }
 
@@ -172,54 +190,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createConversation(conversation: InsertConversation): Promise<Conversation> {
-    const [newConversation] = await db.insert(conversations).values(conversation).returning();
+    await db.insert(conversations).values(conversation);
+    // Query the created conversation
+    const [newConversation] = await db.select().from(conversations).where(eq(conversations.phoneNumber, conversation.phoneNumber));
+    if (!newConversation) {
+      throw new Error('Failed to create conversation');
+    }
     return newConversation;
   }
 
   async updateConversation(id: string, conversationData: Partial<InsertConversation>): Promise<Conversation | undefined> {
-    const [conversation] = await db
+    await db
       .update(conversations)
       .set({ ...conversationData, updatedAt: new Date() })
-      .where(eq(conversations.id, id))
-      .returning();
+      .where(eq(conversations.id, id));
+    // Query the updated conversation
+    const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
     return conversation;
   }
 
   // Auto Reply Rules
   async getAutoReplyRules(): Promise<AutoReplyRule[]> {
-    return await db.select().from(autoReplyRules).orderBy(desc(autoReplyRules.priority));
-  }
-
-  async getAutoReplyRule(id: string): Promise<AutoReplyRule | undefined> {
-    const [rule] = await db.select().from(autoReplyRules).where(eq(autoReplyRules.id, id));
-    return rule;
+    return await db.select().from(autoReplyRules).orderBy(desc(autoReplyRules.createdAt));
   }
 
   async createAutoReplyRule(rule: InsertAutoReplyRule): Promise<AutoReplyRule> {
-    const [newRule] = await db.insert(autoReplyRules).values(rule).returning();
+    await db.insert(autoReplyRules).values(rule);
+    // Query the created rule
+    const [newRule] = await db.select().from(autoReplyRules).where(eq(autoReplyRules.keyword, rule.keyword));
+    if (!newRule) {
+      throw new Error('Failed to create auto reply rule');
+    }
     return newRule;
   }
 
   async updateAutoReplyRule(id: string, ruleData: Partial<InsertAutoReplyRule>): Promise<AutoReplyRule | undefined> {
-    const [rule] = await db
+    await db
       .update(autoReplyRules)
       .set({ ...ruleData, updatedAt: new Date() })
-      .where(eq(autoReplyRules.id, id))
-      .returning();
+      .where(eq(autoReplyRules.id, id));
+    // Query the updated rule
+    const [rule] = await db.select().from(autoReplyRules).where(eq(autoReplyRules.id, id));
     return rule;
   }
 
   async deleteAutoReplyRule(id: string): Promise<boolean> {
     const result = await db.delete(autoReplyRules).where(eq(autoReplyRules.id, id));
-    return result.rowCount > 0;
-  }
-
-  async getActiveAutoReplyRules(): Promise<AutoReplyRule[]> {
-    return await db
-      .select()
-      .from(autoReplyRules)
-      .where(eq(autoReplyRules.isActive, true))
-      .orderBy(desc(autoReplyRules.priority));
+    return result.affectedRows > 0;
   }
 
   // Campaigns
@@ -233,16 +250,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    const [newCampaign] = await db.insert(campaigns).values(campaign).returning();
+    await db.insert(campaigns).values(campaign);
+    // Query the created campaign
+    const [newCampaign] = await db.select().from(campaigns).where(eq(campaigns.name, campaign.name));
+    if (!newCampaign) {
+      throw new Error('Failed to create campaign');
+    }
     return newCampaign;
   }
 
   async updateCampaign(id: string, campaignData: Partial<InsertCampaign>): Promise<Campaign | undefined> {
-    const [campaign] = await db
+    await db
       .update(campaigns)
-      .set(campaignData)
-      .where(eq(campaigns.id, id))
-      .returning();
+      .set({ ...campaignData, updatedAt: new Date() })
+      .where(eq(campaigns.id, id));
+    // Query the updated campaign
+    const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
     return campaign;
   }
 
@@ -257,27 +280,41 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContact(contact: InsertContact): Promise<Contact> {
-    const [newContact] = await db.insert(contacts).values(contact).returning();
+    await db.insert(contacts).values(contact);
+    // Query the created contact
+    const [newContact] = await db.select().from(contacts).where(eq(contacts.phoneNumber, contact.phoneNumber));
+    if (!newContact) {
+      throw new Error('Failed to create contact');
+    }
     return newContact;
   }
 
   async updateContact(id: string, contactData: Partial<InsertContact>): Promise<Contact | undefined> {
-    const [contact] = await db
+    await db
       .update(contacts)
-      .set(contactData)
-      .where(eq(contacts.id, id))
-      .returning();
+      .set({ ...contactData, updatedAt: new Date() })
+      .where(eq(contacts.id, id));
+    // Query the updated contact
+    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
     return contact;
   }
 
   async deleteContact(id: string): Promise<boolean> {
     const result = await db.delete(contacts).where(eq(contacts.id, id));
-    return result.rowCount > 0;
+    return result.affectedRows > 0;
+  }
+
+  async getContactByPhoneNumber(phoneNumber: string): Promise<Contact | undefined> {
+    const [contact] = await db
+      .select()
+      .from(contacts)
+      .where(eq(contacts.phoneNumber, phoneNumber));
+    return contact;
   }
 
   // Settings
   async getSettings(): Promise<Setting[]> {
-    return await db.select().from(settings).orderBy(desc(settings.createdAt));
+    return await db.select().from(settings);
   }
 
   async getSetting(key: string): Promise<Setting | undefined> {
@@ -285,46 +322,41 @@ export class DatabaseStorage implements IStorage {
     return setting;
   }
 
-  async setSetting(setting: InsertSetting): Promise<Setting> {
-    try {
-      // Check if setting exists
-      const existingSetting = await this.getSetting(setting.key);
-      
-      if (existingSetting) {
-        // Update existing setting
-        const [updatedSetting] = await db
-          .update(settings)
-          .set({
-            value: setting.value,
-            category: setting.category || existingSetting.category,
-            isEncrypted: setting.isEncrypted !== undefined ? setting.isEncrypted : existingSetting.isEncrypted,
-            updatedAt: new Date(),
-          })
-          .where(eq(settings.key, setting.key))
-          .returning();
-        return updatedSetting;
-      } else {
-        // Create new setting
-        const [newSetting] = await db.insert(settings).values(setting).returning();
-        return newSetting;
+  async createOrUpdateSetting(key: string, value: string): Promise<Setting> {
+    const existing = await this.getSetting(key);
+    
+    if (existing) {
+      await db
+        .update(settings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(settings.id, existing.id));
+      // Query the updated setting
+      const [updatedSetting] = await db.select().from(settings).where(eq(settings.id, existing.id));
+      return updatedSetting!;
+    } else {
+      const newSetting = { key, value };
+      await db.insert(settings).values(newSetting);
+      // Query the created setting
+      const [createdSetting] = await db.select().from(settings).where(eq(settings.key, key));
+      if (!createdSetting) {
+        throw new Error('Failed to create setting');
       }
-    } catch (error) {
-      console.error('Settings update error:', error);
-      throw error;
+      return createdSetting;
     }
   }
 
-  async updateSetting(key: string, value: any): Promise<Setting | undefined> {
-    const [setting] = await db
+  async updateSetting(id: string, value: string): Promise<Setting | undefined> {
+    await db
       .update(settings)
       .set({ value, updatedAt: new Date() })
-      .where(eq(settings.key, key))
-      .returning();
+      .where(eq(settings.id, id));
+    // Query the updated setting
+    const [setting] = await db.select().from(settings).where(eq(settings.id, id));
     return setting;
   }
 
-  async deleteSetting(key: string): Promise<boolean> {
-    const result = await db.delete(settings).where(eq(settings.key, key));
-    return result.rowCount > 0;
+  async deleteSetting(id: string): Promise<boolean> {
+    const result = await db.delete(settings).where(eq(settings.id, id));
+    return result.affectedRows > 0;
   }
 }

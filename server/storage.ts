@@ -450,6 +450,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Temporarily use in-memory storage while MySQL remote access is configured
-// Port 3306 is open, but IP 34.74.104.238 needs permission in CWP
-export const storage = new MemStorage();
+// Use MySQL-compatible DatabaseStorage with VPS connection
+import { DatabaseStorage } from "./database-storage-mysql";
+export const storage = new DatabaseStorage();
