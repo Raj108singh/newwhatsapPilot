@@ -36,12 +36,20 @@ export const connection = mysql.createPool(
         connectionLimit: 10,
         queueLimit: 0,
         ssl: false,
+        acquireTimeout: 60000,
+        timeout: 60000,
+        reconnect: true,
+        connectTimeout: 60000,
       }
     : {
         ...connectionConfig,
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
+        acquireTimeout: 60000,
+        timeout: 60000,
+        reconnect: true,
+        connectTimeout: 60000,
       }
 );
 
