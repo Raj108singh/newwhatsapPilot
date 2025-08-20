@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import ChatMessage from "@/components/chat-message";
 import BulkMessageModal from "@/components/bulk-message-modal";
 import { websocketManager } from "@/lib/websocket";
+import { apiRequest } from "@/lib/queryClient";
 import { Message, Template, Campaign } from "@shared/schema";
 
 interface Stats {
@@ -36,6 +37,14 @@ export default function Dashboard() {
 
   const { data: campaigns = [] } = useQuery<Campaign[]>({
     queryKey: ["/api/campaigns"],
+  });
+
+  // Load branding settings for header text
+  const { data: brandingSettings } = useQuery({
+    queryKey: ['/api/settings'],
+    queryFn: () => apiRequest('/api/settings'),
+    staleTime: 30 * 1000, // 30 seconds for instant updates
+    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {
@@ -75,7 +84,9 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
-            <p className="text-sm text-slate-500">Monitor your WhatsApp Business API activity</p>
+            <p className="text-sm text-slate-500">
+              {brandingSettings?.header_text || 'Monitor your WhatsApp Business API activity'}
+            </p>
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">

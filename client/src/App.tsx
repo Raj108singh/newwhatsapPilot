@@ -17,11 +17,12 @@ import AutoReplyPage from "@/pages/auto-reply";
 import NotFound from "@/pages/not-found";
 
 function AppLayout() {
-  // Load branding settings for footer text
+  // Load branding settings for footer text with instant updates
   const { data: brandingSettings } = useQuery({
     queryKey: ['/api/settings'],
     queryFn: () => apiRequest('/api/settings'),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000, // 30 seconds for instant updates
+    refetchOnWindowFocus: true,
   });
 
   return (

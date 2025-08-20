@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStatus } from "@/hooks/useAuth";
 import { changePasswordSchema, updateProfileSchema, type ChangePassword, type UpdateProfile } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Settings() {
   const [whatsappSettings, setWhatsappSettings] = useState({
@@ -118,6 +118,9 @@ export default function Settings() {
       
       // Update current settings to reflect changes
       setCurrentSettings((prev: any) => ({ ...prev, ...generalSettings }));
+      
+      // Invalidate cache to update sidebar and other components instantly
+      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     } catch (error: any) {
       toast({
         title: "Save Failed",
@@ -550,101 +553,196 @@ export default function Settings() {
             </TabsContent>
 
             <TabsContent value="general" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>General Settings</CardTitle>
+              <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 dark:from-gray-800 dark:to-gray-700 border-emerald-200 dark:border-gray-600">
+                <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-cogs text-white"></i>
+                    </div>
+                    General Settings
+                  </CardTitle>
+                  <p className="text-emerald-100 text-sm mt-2">Configure your business information and preferences</p>
                 </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleGeneralUpdate} className="space-y-4">
-                    <div>
-                      <Label htmlFor="businessName">Business Name</Label>
+                <CardContent className="p-6">
+                  <form onSubmit={handleGeneralUpdate} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="businessName" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                        <i className="fas fa-building text-emerald-600"></i>
+                        Business Name
+                      </Label>
                       <Input
                         id="businessName"
                         value={generalSettings.businessName}
                         onChange={(e) => setGeneralSettings(prev => ({ ...prev, businessName: e.target.value }))}
                         placeholder="Enter your business name"
                         data-testid="input-business-name"
+                        className="border-emerald-200 focus:border-emerald-400 focus:ring-emerald-400 transition-colors"
                       />
+                      <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                        <i className="fas fa-info-circle"></i>
+                        This appears in various parts of your application
+                      </p>
                     </div>
-                    <div>
-                      <Label htmlFor="timezone">Timezone</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="timezone" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                        <i className="fas fa-globe text-teal-600"></i>
+                        Timezone
+                      </Label>
                       <Input
                         id="timezone"
                         value={generalSettings.timezone}
                         onChange={(e) => setGeneralSettings(prev => ({ ...prev, timezone: e.target.value }))}
                         placeholder="e.g., America/New_York, UTC, Asia/Kolkata"
                         data-testid="input-timezone"
+                        className="border-teal-200 focus:border-teal-400 focus:ring-teal-400 transition-colors"
                       />
+                      <p className="text-xs text-teal-600 mt-1 flex items-center gap-1">
+                        <i className="fas fa-info-circle"></i>
+                        Used for scheduling and timestamps
+                      </p>
+                    </div>
+                    <div className="pt-4">
+                      <Button 
+                        type="submit" 
+                        disabled={isSavingGeneral}
+                        data-testid="button-save-general"
+                        className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium py-3 px-6 rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                      >
+                        {isSavingGeneral ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            Saving Changes...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-save mr-2"></i>
+                            Save General Settings
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </form>
                 </CardContent>
               </Card>
               
-              <Card>
-                <CardHeader>
-                  <CardTitle>Branding & Customization</CardTitle>
+              <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-700 border-blue-200 dark:border-gray-600">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-palette text-white"></i>
+                    </div>
+                    Branding & Customization
+                  </CardTitle>
+                  <p className="text-blue-100 text-sm mt-2">Personalize your WhatsApp Pro experience with custom branding</p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <form onSubmit={handleGeneralUpdate} className="space-y-4">
-                    <div>
-                      <Label htmlFor="appTitle">Application Title</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="appTitle" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                        <i className="fas fa-heading text-blue-600"></i>
+                        Application Title
+                      </Label>
                       <Input
                         id="appTitle"
                         value={generalSettings.app_title}
                         onChange={(e) => setGeneralSettings(prev => ({ ...prev, app_title: e.target.value }))}
                         placeholder="WhatsApp Pro"
                         data-testid="input-app-title"
+                        className="border-blue-200 focus:border-blue-400 focus:ring-blue-400 transition-colors"
                       />
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                        <i className="fas fa-info-circle"></i>
                         This appears in the sidebar and browser title
                       </p>
                     </div>
-                    <div>
-                      <Label htmlFor="sidebarLogo">Sidebar Logo URL</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="sidebarLogo" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                        <i className="fas fa-image text-green-600"></i>
+                        Sidebar Logo URL
+                      </Label>
                       <Input
                         id="sidebarLogo"
                         value={generalSettings.sidebar_logo}
                         onChange={(e) => setGeneralSettings(prev => ({ ...prev, sidebar_logo: e.target.value }))}
                         placeholder="https://example.com/logo.png (leave empty for default)"
                         data-testid="input-sidebar-logo"
+                        className="border-green-200 focus:border-green-400 focus:ring-green-400 transition-colors"
                       />
-                      <p className="text-xs text-slate-500 mt-1">
-                        URL to your logo image for the sidebar (recommended: 32x32px)
+                      {generalSettings.sidebar_logo && (
+                        <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                          <img 
+                            src={generalSettings.sidebar_logo} 
+                            alt="Preview" 
+                            className="w-8 h-8 object-contain rounded"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                          <p className="text-sm text-green-700 dark:text-green-300">Preview of your logo</p>
+                        </div>
+                      )}
+                      <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                        <i className="fas fa-info-circle"></i>
+                        URL to your logo image (recommended: 48x48px or higher)
                       </p>
                     </div>
-                    <div>
-                      <Label htmlFor="headerText">Header Text</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="headerText" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                        <i className="fas fa-newspaper text-purple-600"></i>
+                        Header Text
+                      </Label>
                       <Input
                         id="headerText"
                         value={generalSettings.header_text}
                         onChange={(e) => setGeneralSettings(prev => ({ ...prev, header_text: e.target.value }))}
                         placeholder="Business Messaging Platform"
                         data-testid="input-header-text"
+                        className="border-purple-200 focus:border-purple-400 focus:ring-purple-400 transition-colors"
                       />
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-purple-600 mt-1 flex items-center gap-1">
+                        <i className="fas fa-info-circle"></i>
                         Subtitle text that appears in page headers
                       </p>
                     </div>
-                    <div>
-                      <Label htmlFor="footerText">Footer Text</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="footerText" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                        <i className="fas fa-align-center text-orange-600"></i>
+                        Footer Text
+                      </Label>
                       <Input
                         id="footerText"
                         value={generalSettings.footer_text}
                         onChange={(e) => setGeneralSettings(prev => ({ ...prev, footer_text: e.target.value }))}
                         placeholder="Powered by WhatsApp Pro"
                         data-testid="input-footer-text"
+                        className="border-orange-200 focus:border-orange-400 focus:ring-orange-400 transition-colors"
                       />
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                        <i className="fas fa-info-circle"></i>
                         Text displayed at the bottom of pages
                       </p>
                     </div>
-                    <Button 
-                      type="submit" 
-                      disabled={isSavingGeneral}
-                      data-testid="button-save-branding"
-                    >
-                      {isSavingGeneral ? "Saving..." : "Save Branding Settings"}
-                    </Button>
+                    <div className="pt-4">
+                      <Button 
+                        type="submit" 
+                        disabled={isSavingGeneral}
+                        data-testid="button-save-branding"
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 px-6 rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                      >
+                        {isSavingGeneral ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            Saving Changes...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-magic mr-2"></i>
+                            Save Branding Settings
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </form>
                 </CardContent>
               </Card>

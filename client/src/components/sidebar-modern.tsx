@@ -27,11 +27,12 @@ export default function SidebarModern() {
   const { user } = useAuthStatus();
   const logoutMutation = useLogout();
 
-  // Load branding settings
+  // Load branding settings with shorter cache time for instant updates
   const { data: brandingSettings } = useQuery({
     queryKey: ['/api/settings'],
     queryFn: () => apiRequest('/api/settings'),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000, // 30 seconds for instant updates
+    refetchOnWindowFocus: true,
   });
 
   const handleLogout = () => {
@@ -51,7 +52,7 @@ export default function SidebarModern() {
             <img 
               src={brandingSettings.sidebar_logo} 
               alt="Logo" 
-              className="w-8 h-8 object-contain"
+              className="w-12 h-12 object-contain rounded-lg shadow-sm"
               onError={(e) => {
                 // Fallback to default icon if image fails to load
                 const target = e.target as HTMLImageElement;
@@ -60,10 +61,10 @@ export default function SidebarModern() {
               }}
             />
           ) : null}
-          <div className={`w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center ${brandingSettings?.sidebar_logo ? 'hidden' : ''}`}>
-            <MessageSquare className="w-4 h-4 text-white" />
+          <div className={`w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-lg ${brandingSettings?.sidebar_logo ? 'hidden' : ''}`}>
+            <MessageSquare className="w-6 h-6 text-white" />
           </div>
-          <span className="text-xl font-semibold text-gray-900 dark:text-white">
+          <span className="text-lg font-medium text-gray-900 dark:text-white truncate">
             {brandingSettings?.app_title || 'WhatsApp Pro'}
           </span>
         </div>
