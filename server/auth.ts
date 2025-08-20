@@ -67,7 +67,6 @@ export class AuthService {
       if (!existingAdmin) {
         const hashedPassword = await this.hashPassword("admin123");
         await storage.createUser({
-          id: randomUUID(),
           username: "admin",
           password: hashedPassword,
           email: "admin@whatsapppro.com",

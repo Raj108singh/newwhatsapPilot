@@ -434,6 +434,14 @@ export class MemStorage implements IStorage {
     return setting;
   }
 
+  async createOrUpdateSetting(key: string, value: string): Promise<Setting> {
+    return await this.setSetting({ key, value });
+  }
+
+  async getContactByPhoneNumber(phoneNumber: string): Promise<Contact | undefined> {
+    return Array.from(this.contacts.values()).find(c => c.phoneNumber === phoneNumber);
+  }
+
   async updateSetting(key: string, value: any): Promise<Setting | undefined> {
     const existing = await this.getSetting(key);
     if (!existing) return undefined;
@@ -454,6 +462,7 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use MySQL-compatible DatabaseStorage with VPS connection
-import { DatabaseStorage } from "./database-storage-mysql";
-export const storage = new DatabaseStorage();
+// Temporarily use MemStorage until database connectivity is resolved  
+// import { DatabaseStorage } from "./database-storage-mysql";
+// export const storage = new DatabaseStorage();
+export const storage = new MemStorage();
