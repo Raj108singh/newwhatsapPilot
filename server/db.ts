@@ -13,7 +13,7 @@ const connection = mysql.createPool({
   uri: process.env.DATABASE_URL,
   connectionLimit: 10,
   connectTimeout: 60000,
-  acquireTimeout: 60000,
+  // Remove invalid options for mysql2
 });
 
 export const db = drizzle(connection, { schema, mode: 'default' });
