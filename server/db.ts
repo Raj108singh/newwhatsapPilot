@@ -1,5 +1,5 @@
-import { drizzle } from 'drizzle-orm/mysql2';
-import mysql from 'mysql2/promise';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
 import * as schema from "@shared/schema";
 
 if (!process.env.DATABASE_URL) {
@@ -8,12 +8,6 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create MySQL connection
-const connection = mysql.createPool({
-  uri: process.env.DATABASE_URL,
-  connectionLimit: 10,
-  connectTimeout: 60000,
-  // Remove invalid options for mysql2
-});
-
-export const db = drizzle(connection, { schema, mode: 'default' });
+// Create PostgreSQL connection using Neon
+const sql = neon(process.env.DATABASE_URL);
+export const db = drizzle(sql, { schema });
