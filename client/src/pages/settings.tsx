@@ -31,23 +31,36 @@ export default function Settings() {
     footer_text: "Powered by WhatsApp Pro"
   });
 
-  const [loginPageSettings, setLoginPageSettings] = useState({
-    login_logo: "",
-    login_title: "WhatsApp Pro",
-    login_subtitle: "Professional WhatsApp Business Management Platform",
-    login_welcome_title: "Welcome Back",
-    login_welcome_description: "Sign in to access your WhatsApp Business dashboard",
-    login_feature_1_title: "Automated Responses",
-    login_feature_1_description: "Smart chatbot with AI-powered auto-reply rules for instant customer support",
-    login_feature_2_title: "Bulk Messaging",
-    login_feature_2_description: "Send personalized messages to thousands of contacts with templates",
-    login_feature_3_title: "Secure & Reliable",
-    login_feature_3_description: "Enterprise-grade security with real-time message tracking and status updates"
+  const [themeSettings, setThemeSettings] = useState({
+    // Background colors
+    primary_bg_color: "#ffffff",
+    secondary_bg_color: "#f8fafc",
+    sidebar_bg_color: "#1e293b",
+    card_bg_color: "#ffffff",
+    // Text colors
+    primary_text_color: "#1f2937",
+    secondary_text_color: "#6b7280",
+    heading_text_color: "#111827",
+    sidebar_text_color: "#e2e8f0",
+    // Accent colors
+    primary_accent_color: "#3b82f6",
+    secondary_accent_color: "#6366f1",
+    success_color: "#10b981",
+    warning_color: "#f59e0b",
+    error_color: "#ef4444",
+    // Border and shadow
+    border_color: "#e5e7eb",
+    shadow_color: "#00000010",
+    // Button colors
+    button_primary_bg: "#3b82f6",
+    button_primary_text: "#ffffff",
+    button_secondary_bg: "#f3f4f6",
+    button_secondary_text: "#374151"
   });
   const [currentSettings, setCurrentSettings] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingGeneral, setIsSavingGeneral] = useState(false);
-  const [isSavingLogin, setIsSavingLogin] = useState(false);
+  const [isSavingTheme, setIsSavingTheme] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -89,20 +102,32 @@ export default function Settings() {
           footer_text: settings.footer_text || "Powered by WhatsApp Pro"
         });
         
-        // Load login page settings
-        setLoginPageSettings({
-          login_logo: settings.login_logo || "",
-          login_title: settings.login_title || "WhatsApp Pro",
-          login_subtitle: settings.login_subtitle || "Professional WhatsApp Business Management Platform",
-          login_welcome_title: settings.login_welcome_title || "Welcome Back",
-          login_welcome_description: settings.login_welcome_description || "Sign in to access your WhatsApp Business dashboard",
-          login_feature_1_title: settings.login_feature_1_title || "Automated Responses",
-          login_feature_1_description: settings.login_feature_1_description || "Smart chatbot with AI-powered auto-reply rules for instant customer support",
-          login_feature_2_title: settings.login_feature_2_title || "Bulk Messaging",
-          login_feature_2_description: settings.login_feature_2_description || "Send personalized messages to thousands of contacts with templates",
-          login_feature_3_title: settings.login_feature_3_title || "Secure & Reliable",
-          login_feature_3_description: settings.login_feature_3_description || "Enterprise-grade security with real-time message tracking and status updates"
-        });
+        // Load theme settings
+        const themeData = {
+          primary_bg_color: settings.primary_bg_color || "#ffffff",
+          secondary_bg_color: settings.secondary_bg_color || "#f8fafc",
+          sidebar_bg_color: settings.sidebar_bg_color || "#1e293b",
+          card_bg_color: settings.card_bg_color || "#ffffff",
+          primary_text_color: settings.primary_text_color || "#1f2937",
+          secondary_text_color: settings.secondary_text_color || "#6b7280",
+          heading_text_color: settings.heading_text_color || "#111827",
+          sidebar_text_color: settings.sidebar_text_color || "#e2e8f0",
+          primary_accent_color: settings.primary_accent_color || "#3b82f6",
+          secondary_accent_color: settings.secondary_accent_color || "#6366f1",
+          success_color: settings.success_color || "#10b981",
+          warning_color: settings.warning_color || "#f59e0b",
+          error_color: settings.error_color || "#ef4444",
+          border_color: settings.border_color || "#e5e7eb",
+          shadow_color: settings.shadow_color || "#00000010",
+          button_primary_bg: settings.button_primary_bg || "#3b82f6",
+          button_primary_text: settings.button_primary_text || "#ffffff",
+          button_secondary_bg: settings.button_secondary_bg || "#f3f4f6",
+          button_secondary_text: settings.button_secondary_text || "#374151"
+        };
+        setThemeSettings(themeData);
+        
+        // Apply theme to document
+        applyThemeToDocument(themeData);
         
         // Also populate WhatsApp settings
         setWhatsappSettings({
@@ -204,35 +229,87 @@ export default function Settings() {
     }
   };
 
-  const handleLoginPageUpdate = async (e?: React.FormEvent) => {
+  const handleThemeUpdate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    setIsSavingLogin(true);
+    setIsSavingTheme(true);
 
     try {
       await apiRequest("/api/settings", {
         method: "POST",
-        body: JSON.stringify(loginPageSettings),
+        body: JSON.stringify(themeSettings),
       });
 
       toast({
-        title: "Login Page Settings Saved",
-        description: "Your login page customization has been updated successfully.",
+        title: "Theme Settings Saved",
+        description: "Your theme customization has been updated successfully.",
       });
       
       // Update current settings to reflect changes
-      setCurrentSettings((prev: any) => ({ ...prev, ...loginPageSettings }));
+      setCurrentSettings((prev: any) => ({ ...prev, ...themeSettings }));
       
-      // Invalidate cache to update login page instantly
+      // Apply theme immediately to CSS variables
+      applyThemeToDocument(themeSettings);
+      
+      // Invalidate cache to update theme instantly
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     } catch (error: any) {
       toast({
         title: "Save Failed",
-        description: error.message || "Failed to save login page settings",
+        description: error.message || "Failed to save theme settings",
         variant: "destructive",
       });
     } finally {
-      setIsSavingLogin(false);
+      setIsSavingTheme(false);
     }
+  };
+
+  const applyThemeToDocument = (theme: typeof themeSettings) => {
+    const root = document.documentElement;
+    root.style.setProperty('--primary-bg', theme.primary_bg_color);
+    root.style.setProperty('--secondary-bg', theme.secondary_bg_color);
+    root.style.setProperty('--sidebar-bg', theme.sidebar_bg_color);
+    root.style.setProperty('--card-bg', theme.card_bg_color);
+    root.style.setProperty('--primary-text', theme.primary_text_color);
+    root.style.setProperty('--secondary-text', theme.secondary_text_color);
+    root.style.setProperty('--heading-text', theme.heading_text_color);
+    root.style.setProperty('--sidebar-text', theme.sidebar_text_color);
+    root.style.setProperty('--primary-accent', theme.primary_accent_color);
+    root.style.setProperty('--secondary-accent', theme.secondary_accent_color);
+    root.style.setProperty('--success-color', theme.success_color);
+    root.style.setProperty('--warning-color', theme.warning_color);
+    root.style.setProperty('--error-color', theme.error_color);
+    root.style.setProperty('--border-color', theme.border_color);
+    root.style.setProperty('--shadow-color', theme.shadow_color);
+    root.style.setProperty('--button-primary-bg', theme.button_primary_bg);
+    root.style.setProperty('--button-primary-text', theme.button_primary_text);
+    root.style.setProperty('--button-secondary-bg', theme.button_secondary_bg);
+    root.style.setProperty('--button-secondary-text', theme.button_secondary_text);
+  };
+
+  const resetThemeToDefault = () => {
+    const defaultTheme = {
+      primary_bg_color: "#ffffff",
+      secondary_bg_color: "#f8fafc",
+      sidebar_bg_color: "#1e293b",
+      card_bg_color: "#ffffff",
+      primary_text_color: "#1f2937",
+      secondary_text_color: "#6b7280",
+      heading_text_color: "#111827",
+      sidebar_text_color: "#e2e8f0",
+      primary_accent_color: "#3b82f6",
+      secondary_accent_color: "#6366f1",
+      success_color: "#10b981",
+      warning_color: "#f59e0b",
+      error_color: "#ef4444",
+      border_color: "#e5e7eb",
+      shadow_color: "#00000010",
+      button_primary_bg: "#3b82f6",
+      button_primary_text: "#ffffff",
+      button_secondary_bg: "#f3f4f6",
+      button_secondary_text: "#374151"
+    };
+    setThemeSettings(defaultTheme);
+    applyThemeToDocument(defaultTheme);
   };
 
   const handlePasswordChange = async (data: ChangePassword) => {
@@ -334,12 +411,12 @@ export default function Settings() {
               </TabsTrigger>
 
               <TabsTrigger 
-                value="login-page" 
+                value="theme" 
                 className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-cyan-500 data-[state=active]:via-teal-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-cyan-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-4 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[4rem]"
               >
-                <i className="fas fa-sign-in-alt text-lg"></i>
-                <span className="hidden sm:inline font-semibold text-sm">Login Page</span>
-                <span className="sm:hidden font-semibold text-xs">Login</span>
+                <i className="fas fa-palette text-lg"></i>
+                <span className="hidden sm:inline font-semibold text-sm">Theme Design</span>
+                <span className="sm:hidden font-semibold text-xs">Theme</span>
               </TabsTrigger>
 
               <TabsTrigger 
@@ -880,206 +957,287 @@ export default function Settings() {
 
 
 
-            <TabsContent value="login-page" className="space-y-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+            <TabsContent value="theme" className="space-y-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
               <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 shadow-lg">
-                <CardHeader className="bg-blue-600 text-white rounded-t-lg">
+                <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                      <i className="fas fa-sign-in-alt text-white"></i>
+                      <i className="fas fa-palette text-white"></i>
                     </div>
-                    Login Page Customization
+                    System Theme Design
                   </CardTitle>
-                  <p className="text-blue-100 text-sm mt-2">Customize the login page branding and content (Secure Admin Only)</p>
+                  <p className="text-purple-100 text-sm mt-2">Customize colors, backgrounds, and visual design for the entire system</p>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <form onSubmit={handleLoginPageUpdate} className="space-y-6">
+                  <form onSubmit={handleThemeUpdate} className="space-y-6">
                     
-                    {/* Logo Section */}
-                    <div className="space-y-2">
-                      <Label htmlFor="loginLogo" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
-                        <i className="fas fa-image text-blue-600"></i>
-                        Login Logo URL
-                      </Label>
-                      <Input
-                        id="loginLogo"
-                        value={loginPageSettings.login_logo}
-                        onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_logo: e.target.value }))}
-                        placeholder="https://example.com/logo.png (leave empty for default)"
-                        className="focus:border-blue-400 focus:ring-blue-400"
-                      />
-                      {loginPageSettings.login_logo && (
-                        <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <img 
-                            src={loginPageSettings.login_logo} 
-                            alt="Preview" 
-                            className="w-8 h-8 object-contain rounded"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                            }}
-                          />
-                          <p className="text-sm text-blue-700 dark:text-blue-300">Preview of your login logo</p>
+                    {/* Background Colors Section */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i className="fas fa-fill-drip text-purple-600"></i>
+                        Background Colors
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="primaryBg" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Primary Background
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="primaryBg"
+                              type="color"
+                              value={themeSettings.primary_bg_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, primary_bg_color: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.primary_bg_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, primary_bg_color: e.target.value }))}
+                              placeholder="#ffffff"
+                              className="flex-1 focus:border-purple-400 focus:ring-purple-400"
+                            />
+                          </div>
                         </div>
-                      )}
+                        <div className="space-y-2">
+                          <Label htmlFor="secondaryBg" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Secondary Background
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="secondaryBg"
+                              type="color"
+                              value={themeSettings.secondary_bg_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, secondary_bg_color: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.secondary_bg_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, secondary_bg_color: e.target.value }))}
+                              placeholder="#f8fafc"
+                              className="flex-1 focus:border-purple-400 focus:ring-purple-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="sidebarBg" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Sidebar Background
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="sidebarBg"
+                              type="color"
+                              value={themeSettings.sidebar_bg_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, sidebar_bg_color: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.sidebar_bg_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, sidebar_bg_color: e.target.value }))}
+                              placeholder="#1e293b"
+                              className="flex-1 focus:border-purple-400 focus:ring-purple-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cardBg" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Card Background
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="cardBg"
+                              type="color"
+                              value={themeSettings.card_bg_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, card_bg_color: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.card_bg_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, card_bg_color: e.target.value }))}
+                              placeholder="#ffffff"
+                              className="flex-1 focus:border-purple-400 focus:ring-purple-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Title and Subtitle */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="loginTitle" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
-                          <i className="fas fa-heading text-blue-600"></i>
-                          App Title
-                        </Label>
-                        <Input
-                          id="loginTitle"
-                          value={loginPageSettings.login_title}
-                          onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_title: e.target.value }))}
-                          placeholder="WhatsApp Pro"
-                          className="focus:border-blue-400 focus:ring-blue-400"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="loginSubtitle" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
-                          <i className="fas fa-text-height text-indigo-600"></i>
-                          App Subtitle
-                        </Label>
-                        <Input
-                          id="loginSubtitle"
-                          value={loginPageSettings.login_subtitle}
-                          onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_subtitle: e.target.value }))}
-                          placeholder="Professional WhatsApp Business Management Platform"
-                          className="focus:border-indigo-400 focus:ring-indigo-400"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Welcome Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="welcomeTitle" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
-                          <i className="fas fa-hand-wave text-green-600"></i>
-                          Welcome Title
-                        </Label>
-                        <Input
-                          id="welcomeTitle"
-                          value={loginPageSettings.login_welcome_title}
-                          onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_welcome_title: e.target.value }))}
-                          placeholder="Welcome Back"
-                          className="focus:border-green-400 focus:ring-green-400"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="welcomeDescription" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
-                          <i className="fas fa-comment text-teal-600"></i>
-                          Welcome Description
-                        </Label>
-                        <Input
-                          id="welcomeDescription"
-                          value={loginPageSettings.login_welcome_description}
-                          onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_welcome_description: e.target.value }))}
-                          placeholder="Sign in to access your WhatsApp Business dashboard"
-                          className="focus:border-teal-400 focus:ring-teal-400"
-                        />
+                    {/* Text Colors Section */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i className="fas fa-font text-blue-600"></i>
+                        Text Colors
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="primaryText" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Primary Text
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="primaryText"
+                              type="color"
+                              value={themeSettings.primary_text_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, primary_text_color: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.primary_text_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, primary_text_color: e.target.value }))}
+                              placeholder="#1f2937"
+                              className="flex-1 focus:border-blue-400 focus:ring-blue-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="secondaryText" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Secondary Text
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="secondaryText"
+                              type="color"
+                              value={themeSettings.secondary_text_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, secondary_text_color: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.secondary_text_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, secondary_text_color: e.target.value }))}
+                              placeholder="#6b7280"
+                              className="flex-1 focus:border-blue-400 focus:ring-blue-400"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Features Section */}
-                    <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <h4 className="font-medium flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                    {/* Accent Colors Section */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i className="fas fa-star text-yellow-600"></i>
-                        Feature Highlights
-                      </h4>
-                      
-                      {/* Feature 1 */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        Accent Colors
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="feature1Title" className="text-sm">Feature 1 Title</Label>
-                          <Input
-                            id="feature1Title"
-                            value={loginPageSettings.login_feature_1_title}
-                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_1_title: e.target.value }))}
-                            placeholder="Automated Responses"
-                            className="text-sm"
-                          />
+                          <Label htmlFor="primaryAccent" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Primary Accent
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="primaryAccent"
+                              type="color"
+                              value={themeSettings.primary_accent_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, primary_accent_color: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.primary_accent_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, primary_accent_color: e.target.value }))}
+                              placeholder="#3b82f6"
+                              className="flex-1 focus:border-yellow-400 focus:ring-yellow-400"
+                            />
+                          </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="feature1Desc" className="text-sm">Feature 1 Description</Label>
-                          <Input
-                            id="feature1Desc"
-                            value={loginPageSettings.login_feature_1_description}
-                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_1_description: e.target.value }))}
-                            placeholder="Smart chatbot with AI-powered auto-reply rules"
-                            className="text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Feature 2 */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="feature2Title" className="text-sm">Feature 2 Title</Label>
-                          <Input
-                            id="feature2Title"
-                            value={loginPageSettings.login_feature_2_title}
-                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_2_title: e.target.value }))}
-                            placeholder="Bulk Messaging"
-                            className="text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="feature2Desc" className="text-sm">Feature 2 Description</Label>
-                          <Input
-                            id="feature2Desc"
-                            value={loginPageSettings.login_feature_2_description}
-                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_2_description: e.target.value }))}
-                            placeholder="Send personalized messages to thousands of contacts"
-                            className="text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Feature 3 */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="feature3Title" className="text-sm">Feature 3 Title</Label>
-                          <Input
-                            id="feature3Title"
-                            value={loginPageSettings.login_feature_3_title}
-                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_3_title: e.target.value }))}
-                            placeholder="Secure & Reliable"
-                            className="text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="feature3Desc" className="text-sm">Feature 3 Description</Label>
-                          <Input
-                            id="feature3Desc"
-                            value={loginPageSettings.login_feature_3_description}
-                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_3_description: e.target.value }))}
-                            placeholder="Enterprise-grade security with real-time tracking"
-                            className="text-sm"
-                          />
+                          <Label htmlFor="secondaryAccent" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Secondary Accent
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="secondaryAccent"
+                              type="color"
+                              value={themeSettings.secondary_accent_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, secondary_accent_color: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.secondary_accent_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, secondary_accent_color: e.target.value }))}
+                              placeholder="#6366f1"
+                              className="flex-1 focus:border-yellow-400 focus:ring-yellow-400"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-4">
+                    {/* Button Colors Section */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i className="fas fa-mouse-pointer text-green-600"></i>
+                        Button Colors
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="buttonPrimaryBg" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Primary Button Background
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="buttonPrimaryBg"
+                              type="color"
+                              value={themeSettings.button_primary_bg}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, button_primary_bg: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.button_primary_bg}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, button_primary_bg: e.target.value }))}
+                              placeholder="#3b82f6"
+                              className="flex-1 focus:border-green-400 focus:ring-green-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="buttonPrimaryText" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Primary Button Text
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="buttonPrimaryText"
+                              type="color"
+                              value={themeSettings.button_primary_text}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, button_primary_text: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.button_primary_text}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, button_primary_text: e.target.value }))}
+                              placeholder="#ffffff"
+                              className="flex-1 focus:border-green-400 focus:ring-green-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-4 pt-6">
                       <Button 
                         type="submit" 
-                        disabled={isSavingLogin}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg"
+                        disabled={isSavingTheme}
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 px-6 rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                       >
-                        {isSavingLogin ? (
+                        {isSavingTheme ? (
                           <>
                             <i className="fas fa-spinner fa-spin mr-2"></i>
-                            Saving Login Page Settings...
+                            Saving Theme Settings...
                           </>
                         ) : (
                           <>
                             <i className="fas fa-save mr-2"></i>
-                            Save Login Page Settings
+                            Save Theme Settings
                           </>
                         )}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        onClick={resetThemeToDefault}
+                        variant="outline"
+                        className="px-6 py-3 border-2 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 rounded-lg transition-all duration-200"
+                      >
+                        <i className="fas fa-undo mr-2"></i>
+                        Reset to Default
                       </Button>
                     </div>
                   </form>
