@@ -688,6 +688,8 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
   // Enhanced Settings API
   app.get('/api/settings', authenticate, async (req, res) => {
     try {
