@@ -118,6 +118,18 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
         }
       }
       
+      // Add IMAGE header parameter
+      if (component.type === "HEADER" && component.format === "IMAGE") {
+        params.push({
+          component: "HEADER",
+          placeholder: "{{IMAGE_URL}}",
+          index: params.length + 1,
+          label: "Header Image URL",
+          type: "image",
+          example: component.example?.header_handle?.[0] || ""
+        });
+      }
+      
       if (component.type === "BODY" && component.text) {
         const bodyMatches = component.text.match(/\{\{(\d+)\}\}/g);
         if (bodyMatches) {
@@ -305,20 +317,50 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                         ({param.component} component)
                       </span>
                     </Label>
-                    <Input
-                      value={parameters[index] || ""}
-                      onChange={(e) => {
-                        const newParams = [...parameters];
-                        newParams[index] = e.target.value;
-                        setParameters(newParams);
-                      }}
-                      placeholder={param.example || `Enter value for ${param.placeholder}`}
-                      className="text-sm"
-                      data-testid={`input-param-${index}`}
-                    />
-                    {param.example && (
-                      <div className="text-xs text-slate-500">
-                        Example: {param.example}
+                    {param.type === 'image' ? (
+                      <div className="space-y-2">
+                        <Input
+                          value={parameters[index] || ""}
+                          onChange={(e) => {
+                            const newParams = [...parameters];
+                            newParams[index] = e.target.value;
+                            setParameters(newParams);
+                          }}
+                          placeholder="Enter custom image URL (optional - will use template default if empty)"
+                          className="text-sm"
+                          data-testid={`input-param-${index}`}
+                        />
+                        {param.example && (
+                          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                            <strong>Default image:</strong> Template includes a default image
+                            <br />
+                            <span className="text-blue-500">Leave empty to use default, or enter custom URL above</span>
+                          </div>
+                        )}
+                        {parameters[index] && (
+                          <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
+                            <strong>Custom image selected:</strong> {parameters[index]}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <Input
+                          value={parameters[index] || ""}
+                          onChange={(e) => {
+                            const newParams = [...parameters];
+                            newParams[index] = e.target.value;
+                            setParameters(newParams);
+                          }}
+                          placeholder={param.example || `Enter value for ${param.placeholder}`}
+                          className="text-sm"
+                          data-testid={`input-param-${index}`}
+                        />
+                        {param.example && (
+                          <div className="text-xs text-slate-500">
+                            Example: {param.example}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

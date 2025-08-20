@@ -36,7 +36,7 @@ Your WhatsApp Pro application now supports all types of WhatsApp Business API te
 }
 ```
 
-### Image Header Template  
+### Image Header Template with Custom Image
 ```json
 {
   "templateId": "your-image-template-id",
@@ -46,7 +46,17 @@ Your WhatsApp Pro application now supports all types of WhatsApp Business API te
     "John",
     "Premium Service"
   ],
-  "campaignName": "Image Header Campaign"
+  "campaignName": "Custom Image Campaign"
+}
+```
+
+### Image Header Template with Default Image
+```json
+{
+  "templateId": "your-image-template-id",
+  "recipients": ["+1234567890"],
+  "parameters": [],
+  "campaignName": "Default Image Campaign"
 }
 ```
 
@@ -87,11 +97,12 @@ The system automatically maps parameters in order:
 
 ## Best Practices
 
-1. **Always provide required parameters**: Image/video headers need URLs
+1. **Image Header Templates**: You can either provide custom image URLs or leave parameters empty to use the template's default image
 2. **Test templates individually**: Verify each template works before bulk sending
-3. **Use meaningful parameter values**: Avoid empty strings or invalid URLs
+3. **Use meaningful parameter values**: Avoid empty strings or invalid URLs for text parameters
 4. **Monitor campaign results**: Check success/failure rates in the dashboard
 5. **Handle different template types**: Your campaigns can mix template types
+6. **Custom vs Default Images**: For image headers, the system automatically uses template defaults when no custom image is provided
 
 ## Error Handling
 
