@@ -38,6 +38,29 @@
   --sidebar-accent-foreground: hsl(203.8863 88.2845% 53.1373%);
   --sidebar-border: hsl(205.0000 25.0000% 90.5882%);
   --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
+
+  /* Custom Theme Variables */
+  --theme-primary-bg: #ffffff;
+  --theme-secondary-bg: #f8fafc;
+  --theme-sidebar-bg: #1e293b;
+  --theme-card-bg: #ffffff;
+  --theme-primary-text: #1f2937;
+  --theme-secondary-text: #6b7280;
+  --theme-heading-text: #111827;
+  --theme-sidebar-text: #e2e8f0;
+  --theme-sidebar-icon: #94a3b8;
+  --theme-sidebar-hover-bg: #334155;
+  --theme-primary-accent: #3b82f6;
+  --theme-secondary-accent: #6366f1;
+  --theme-success: #10b981;
+  --theme-warning: #f59e0b;
+  --theme-error: #ef4444;
+  --theme-border: #e5e7eb;
+  --theme-shadow: rgba(0, 0, 0, 0.1);
+  --theme-button-primary-bg: #3b82f6;
+  --theme-button-primary-text: #ffffff;
+  --theme-button-secondary-bg: #f3f4f6;
+  --theme-button-secondary-text: #374151;
   --font-sans: Inter, ui-sans-serif, system-ui;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
@@ -52,6 +75,64 @@
   --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+}
+
+/* Apply theme variables to components */
+body {
+  background-color: var(--theme-primary-bg) !important;
+  color: var(--theme-primary-text) !important;
+}
+
+.bg-card, [style*="bg-card"] {
+  background-color: var(--theme-card-bg) !important;
+  color: var(--theme-primary-text) !important;
+}
+
+.bg-background {
+  background-color: var(--theme-primary-bg) !important;
+}
+
+.text-foreground {
+  color: var(--theme-primary-text) !important;
+}
+
+/* Apply theme to buttons */
+.btn-primary, [class*="bg-primary"]:not(.bg-primary-50) {
+  background-color: var(--theme-button-primary-bg) !important;
+  color: var(--theme-button-primary-text) !important;
+}
+
+.btn-secondary, [class*="bg-secondary"] {
+  background-color: var(--theme-button-secondary-bg) !important;
+  color: var(--theme-button-secondary-text) !important;
+}
+
+/* Apply theme to borders */
+.border, [class*="border-"] {
+  border-color: var(--theme-border) !important;
+}
+
+/* Apply theme to success/warning/error states */
+.text-green-600, .text-emerald-600 {
+  color: var(--theme-success) !important;
+}
+
+.text-yellow-600, .text-amber-600 {
+  color: var(--theme-warning) !important;
+}
+
+.text-red-600, .text-rose-600 {
+  color: var(--theme-error) !important;
+}
+
+/* Apply to headings */
+h1, h2, h3, h4, h5, h6, .text-lg, .font-semibold, .font-bold {
+  color: var(--theme-heading-text) !important;
+}
+
+/* Apply to secondary text */
+.text-gray-500, .text-slate-500, .text-muted-foreground {
+  color: var(--theme-secondary-text) !important;
 }
 
 .dark {

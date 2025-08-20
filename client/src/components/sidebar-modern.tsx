@@ -44,9 +44,13 @@ export default function SidebarModern() {
   };
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-900 shadow-sm border-r border-gray-200 dark:border-gray-700 flex flex-col">
+    <div className="w-64 shadow-sm border-r flex flex-col" style={{ 
+      backgroundColor: 'var(--theme-sidebar-bg)', 
+      borderColor: 'var(--theme-border)',
+      color: 'var(--theme-sidebar-text)'
+    }}>
       {/* Logo Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-6 border-b" style={{ borderColor: 'var(--theme-border)' }}>
         <div className="flex items-center space-x-3">
           {brandingSettings?.sidebar_logo ? (
             <img 
@@ -64,7 +68,7 @@ export default function SidebarModern() {
           <div className={`w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-lg ${brandingSettings?.sidebar_logo ? 'hidden' : ''}`}>
             <MessageSquare className="w-6 h-6 text-white" />
           </div>
-          <span className="text-lg font-medium text-gray-900 dark:text-white truncate">
+          <span className="text-lg font-medium truncate" style={{ color: 'var(--theme-sidebar-text)' }}>
             {brandingSettings?.app_title || 'WhatsApp Pro'}
           </span>
         </div>
@@ -81,14 +85,26 @@ export default function SidebarModern() {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-colors",
-                isActive
-                  ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
-                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                "flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-colors"
               )}
+              style={{
+                backgroundColor: isActive ? 'var(--theme-primary-accent)' : 'transparent',
+                color: isActive ? 'var(--theme-button-primary-text)' : 'var(--theme-sidebar-text)',
+                border: isActive ? '1px solid var(--theme-primary-accent)' : 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'var(--theme-sidebar-hover-bg)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
               data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-5 h-5" style={{ color: isActive ? 'var(--theme-button-primary-text)' : 'var(--theme-sidebar-icon)' }} />
               <span>{item.name}</span>
               
               {item.name === "Auto Reply" && (
@@ -106,19 +122,19 @@ export default function SidebarModern() {
       {/* User Profile & Logout */}
       <div className="p-4 space-y-4">
         {user && (
-          <div className="flex items-center space-x-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="flex items-center space-x-3 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--theme-sidebar-hover-bg)' }}>
             <Avatar className="w-8 h-8">
-              <AvatarFallback className="bg-blue-500 text-white text-sm">
+              <AvatarFallback className="text-white text-sm" style={{ backgroundColor: 'var(--theme-primary-accent)' }}>
                 {getUserInitials(user.name || user.username)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <p className="text-sm font-medium truncate" style={{ color: 'var(--theme-sidebar-text)' }}>
                 {user.name || user.username}
               </p>
               <div className="flex items-center space-x-1">
-                <Shield className="w-3 h-3 text-gray-500" />
-                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                <Shield className="w-3 h-3" style={{ color: 'var(--theme-sidebar-icon)' }} />
+                <p className="text-xs capitalize" style={{ color: 'var(--theme-sidebar-icon)' }}>
                   {user.role}
                 </p>
               </div>

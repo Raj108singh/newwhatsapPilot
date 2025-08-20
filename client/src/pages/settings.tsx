@@ -42,6 +42,8 @@ export default function Settings() {
     secondary_text_color: "#6b7280",
     heading_text_color: "#111827",
     sidebar_text_color: "#e2e8f0",
+    sidebar_icon_color: "#94a3b8",
+    sidebar_hover_bg: "#334155",
     // Accent colors
     primary_accent_color: "#3b82f6",
     secondary_accent_color: "#6366f1",
@@ -112,6 +114,8 @@ export default function Settings() {
           secondary_text_color: settings.secondary_text_color || "#6b7280",
           heading_text_color: settings.heading_text_color || "#111827",
           sidebar_text_color: settings.sidebar_text_color || "#e2e8f0",
+          sidebar_icon_color: settings.sidebar_icon_color || "#94a3b8",
+          sidebar_hover_bg: settings.sidebar_hover_bg || "#334155",
           primary_accent_color: settings.primary_accent_color || "#3b82f6",
           secondary_accent_color: settings.secondary_accent_color || "#6366f1",
           success_color: settings.success_color || "#10b981",
@@ -265,25 +269,39 @@ export default function Settings() {
 
   const applyThemeToDocument = (theme: typeof themeSettings) => {
     const root = document.documentElement;
-    root.style.setProperty('--primary-bg', theme.primary_bg_color);
-    root.style.setProperty('--secondary-bg', theme.secondary_bg_color);
-    root.style.setProperty('--sidebar-bg', theme.sidebar_bg_color);
-    root.style.setProperty('--card-bg', theme.card_bg_color);
-    root.style.setProperty('--primary-text', theme.primary_text_color);
-    root.style.setProperty('--secondary-text', theme.secondary_text_color);
-    root.style.setProperty('--heading-text', theme.heading_text_color);
-    root.style.setProperty('--sidebar-text', theme.sidebar_text_color);
-    root.style.setProperty('--primary-accent', theme.primary_accent_color);
-    root.style.setProperty('--secondary-accent', theme.secondary_accent_color);
-    root.style.setProperty('--success-color', theme.success_color);
-    root.style.setProperty('--warning-color', theme.warning_color);
-    root.style.setProperty('--error-color', theme.error_color);
-    root.style.setProperty('--border-color', theme.border_color);
-    root.style.setProperty('--shadow-color', theme.shadow_color);
-    root.style.setProperty('--button-primary-bg', theme.button_primary_bg);
-    root.style.setProperty('--button-primary-text', theme.button_primary_text);
-    root.style.setProperty('--button-secondary-bg', theme.button_secondary_bg);
-    root.style.setProperty('--button-secondary-text', theme.button_secondary_text);
+    
+    // Apply theme variables to CSS custom properties
+    root.style.setProperty('--theme-primary-bg', theme.primary_bg_color);
+    root.style.setProperty('--theme-secondary-bg', theme.secondary_bg_color);
+    root.style.setProperty('--theme-sidebar-bg', theme.sidebar_bg_color);
+    root.style.setProperty('--theme-card-bg', theme.card_bg_color);
+    root.style.setProperty('--theme-primary-text', theme.primary_text_color);
+    root.style.setProperty('--theme-secondary-text', theme.secondary_text_color);
+    root.style.setProperty('--theme-heading-text', theme.heading_text_color);
+    root.style.setProperty('--theme-sidebar-text', theme.sidebar_text_color);
+    root.style.setProperty('--theme-sidebar-icon', theme.sidebar_icon_color);
+    root.style.setProperty('--theme-sidebar-hover-bg', theme.sidebar_hover_bg);
+    root.style.setProperty('--theme-primary-accent', theme.primary_accent_color);
+    root.style.setProperty('--theme-secondary-accent', theme.secondary_accent_color);
+    root.style.setProperty('--theme-success', theme.success_color);
+    root.style.setProperty('--theme-warning', theme.warning_color);
+    root.style.setProperty('--theme-error', theme.error_color);
+    root.style.setProperty('--theme-border', theme.border_color);
+    root.style.setProperty('--theme-shadow', theme.shadow_color);
+    root.style.setProperty('--theme-button-primary-bg', theme.button_primary_bg);
+    root.style.setProperty('--theme-button-primary-text', theme.button_primary_text);
+    root.style.setProperty('--theme-button-secondary-bg', theme.button_secondary_bg);
+    root.style.setProperty('--theme-button-secondary-text', theme.button_secondary_text);
+
+    // Also update main background and text colors for immediate visual effect
+    root.style.setProperty('--background', theme.primary_bg_color);
+    root.style.setProperty('--foreground', theme.primary_text_color);
+    root.style.setProperty('--card', theme.card_bg_color);
+    root.style.setProperty('--card-foreground', theme.primary_text_color);
+    root.style.setProperty('--sidebar', theme.sidebar_bg_color);
+    root.style.setProperty('--sidebar-foreground', theme.sidebar_text_color);
+    root.style.setProperty('--primary', theme.primary_accent_color);
+    root.style.setProperty('--border', theme.border_color);
   };
 
   const resetThemeToDefault = () => {
@@ -296,6 +314,8 @@ export default function Settings() {
       secondary_text_color: "#6b7280",
       heading_text_color: "#111827",
       sidebar_text_color: "#e2e8f0",
+      sidebar_icon_color: "#94a3b8",
+      sidebar_hover_bg: "#334155",
       primary_accent_color: "#3b82f6",
       secondary_accent_color: "#6366f1",
       success_color: "#10b981",
@@ -987,12 +1007,20 @@ export default function Settings() {
                               id="primaryBg"
                               type="color"
                               value={themeSettings.primary_bg_color}
-                              onChange={(e) => setThemeSettings(prev => ({ ...prev, primary_bg_color: e.target.value }))}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, primary_bg_color: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
                               className="w-16 h-10 border-2 rounded-lg cursor-pointer"
                             />
                             <Input
                               value={themeSettings.primary_bg_color}
-                              onChange={(e) => setThemeSettings(prev => ({ ...prev, primary_bg_color: e.target.value }))}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, primary_bg_color: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
                               placeholder="#ffffff"
                               className="flex-1 focus:border-purple-400 focus:ring-purple-400"
                             />
@@ -1027,12 +1055,20 @@ export default function Settings() {
                               id="sidebarBg"
                               type="color"
                               value={themeSettings.sidebar_bg_color}
-                              onChange={(e) => setThemeSettings(prev => ({ ...prev, sidebar_bg_color: e.target.value }))}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, sidebar_bg_color: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
                               className="w-16 h-10 border-2 rounded-lg cursor-pointer"
                             />
                             <Input
                               value={themeSettings.sidebar_bg_color}
-                              onChange={(e) => setThemeSettings(prev => ({ ...prev, sidebar_bg_color: e.target.value }))}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, sidebar_bg_color: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
                               placeholder="#1e293b"
                               className="flex-1 focus:border-purple-400 focus:ring-purple-400"
                             />
@@ -1055,6 +1091,72 @@ export default function Settings() {
                               onChange={(e) => setThemeSettings(prev => ({ ...prev, card_bg_color: e.target.value }))}
                               placeholder="#ffffff"
                               className="flex-1 focus:border-purple-400 focus:ring-purple-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sidebar Colors Section */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i className="fas fa-bars text-indigo-600"></i>
+                        Sidebar Colors
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="sidebarIcon" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Sidebar Icon Color
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="sidebarIcon"
+                              type="color"
+                              value={themeSettings.sidebar_icon_color}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, sidebar_icon_color: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.sidebar_icon_color}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, sidebar_icon_color: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
+                              placeholder="#94a3b8"
+                              className="flex-1 focus:border-indigo-400 focus:ring-indigo-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="sidebarHover" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Sidebar Hover Background
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="sidebarHover"
+                              type="color"
+                              value={themeSettings.sidebar_hover_bg}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, sidebar_hover_bg: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.sidebar_hover_bg}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, sidebar_hover_bg: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
+                              placeholder="#334155"
+                              className="flex-1 focus:border-indigo-400 focus:ring-indigo-400"
                             />
                           </div>
                         </div>
@@ -1104,6 +1206,54 @@ export default function Settings() {
                               value={themeSettings.secondary_text_color}
                               onChange={(e) => setThemeSettings(prev => ({ ...prev, secondary_text_color: e.target.value }))}
                               placeholder="#6b7280"
+                              className="flex-1 focus:border-blue-400 focus:ring-blue-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="headingText" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Heading Text
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="headingText"
+                              type="color"
+                              value={themeSettings.heading_text_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, heading_text_color: e.target.value }))}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.heading_text_color}
+                              onChange={(e) => setThemeSettings(prev => ({ ...prev, heading_text_color: e.target.value }))}
+                              placeholder="#111827"
+                              className="flex-1 focus:border-blue-400 focus:ring-blue-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="sidebarText" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            Sidebar Text Color
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="sidebarText"
+                              type="color"
+                              value={themeSettings.sidebar_text_color}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, sidebar_text_color: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
+                              className="w-16 h-10 border-2 rounded-lg cursor-pointer"
+                            />
+                            <Input
+                              value={themeSettings.sidebar_text_color}
+                              onChange={(e) => {
+                                const newSettings = { ...themeSettings, sidebar_text_color: e.target.value };
+                                setThemeSettings(newSettings);
+                                applyThemeToDocument(newSettings);
+                              }}
+                              placeholder="#e2e8f0"
                               className="flex-1 focus:border-blue-400 focus:ring-blue-400"
                             />
                           </div>
