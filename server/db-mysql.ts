@@ -27,7 +27,7 @@ if (databaseUrl && databaseUrl.startsWith('mysql://')) {
   };
 }
 
-// Create MySQL connection pool
+// Create MySQL connection pool with UTF-8 support
 export const connection = mysql.createPool(
   typeof connectionConfig === 'string' 
     ? {
@@ -40,6 +40,8 @@ export const connection = mysql.createPool(
         timeout: 60000,
         reconnect: true,
         connectTimeout: 60000,
+        charset: 'utf8mb4',
+        collation: 'utf8mb4_unicode_ci',
       }
     : {
         ...connectionConfig,
@@ -50,6 +52,8 @@ export const connection = mysql.createPool(
         timeout: 60000,
         reconnect: true,
         connectTimeout: 60000,
+        charset: 'utf8mb4',
+        collation: 'utf8mb4_unicode_ci',
       }
 );
 
