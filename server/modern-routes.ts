@@ -181,13 +181,13 @@ class EnhancedWhatsAppService {
         
         results.push({ recipient, success: true, result });
 
-        // Parse template components if they're stored as string
-        const templateComponents = typeof template.components === 'string' 
+        // Parse template components if they're stored as string for message storage
+        const parsedTemplateComponents = typeof template.components === 'string' 
           ? JSON.parse(template.components) 
           : template.components;
         
         // Store complete template message with actual content
-        const bodyComponent = templateComponents?.find((c: any) => c.type === 'BODY');
+        const bodyComponent = parsedTemplateComponents?.find((c: any) => c.type === 'BODY');
         let actualContent = bodyComponent?.text || `Template: ${template.name}`;
         
         // Replace template parameters in content for display
@@ -276,13 +276,23 @@ class EnhancedWhatsAppService {
             });
           }
         } else if (component.format === "IMAGE") {
-          // For IMAGE headers, provide image URL parameter if available
+          // For IMAGE headers, we need to handle them even without parameters
+          // Use example image from template or require parameter
           if (parameters.length > paramIndex && parameters[paramIndex]) {
             components.push({
               type: "header",
               parameters: [{
                 type: "image",
                 image: { link: parameters[paramIndex++] }
+              }]
+            });
+          } else if (component.example && component.example.header_handle && component.example.header_handle[0]) {
+            // Use the example image from the template itself
+            components.push({
+              type: "header",
+              parameters: [{
+                type: "image",
+                image: { link: component.example.header_handle[0] }
               }]
             });
           }

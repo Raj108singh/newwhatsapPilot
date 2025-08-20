@@ -1,0 +1,60 @@
+=== STARTING TO SEND TO RECIPIENTS ===
+=== PROCESSING RECIPIENT 1/1: +918318868521 ===
+Built template components: []
+Built template components for recipient: []
+=== SENDING MESSAGE TO WHATSAPP API ===
+Message payload: {
+  "messaging_product": "whatsapp",
+  "to": "+918318868521",
+  "type": "template",
+  "template": {
+    "name": "welcome_message",
+    "language": {
+      "code": "en"
+    },
+    "components": []
+  }
+}
+API URL: https://graph.facebook.com/v18.0/636589589532430/messages
+1:38:51 PM [express] GET /api/campaigns 200 in 801ms :: [{"id":"75fc7980-7530-4217-ba9f-7093bfb4684d…
+WhatsApp API error details: {
+  status: 400,
+  statusText: 'Bad Request',
+  errorData: {
+    error: {
+      message: '(#132012) Parameter format does not match format in the created template',
+      type: 'OAuthException',
+      code: 132012,
+      error_data: [Object],
+      fbtrace_id: 'Af1VWyD8oAmCwg6TEzhMUQt'
+    }
+  },
+  requestMessage: {
+    messaging_product: 'whatsapp',
+    to: '+918318868521',
+    type: 'template',
+    template: { name: 'welcome_message', language: [Object], components: [] }
+  }
+}
+=== FAILED TO SEND MESSAGE TO +918318868521 ===
+Error details: Error: WhatsApp API error: 400 Bad Request. Details: {"error":{"message":"(#132012) Parameter format does not match format in the created template","type":"OAuthException","code":132012,"error_data":{"messaging_product":"whatsapp","details":"header: Format mismatch, expected IMAGE, received UNKNOWN"},"fbtrace_id":"Af1VWyD8oAmCwg6TEzhMUQt"}}
+    at EnhancedWhatsAppService.sendMessage (/home/runner/workspace/server/modern-routes.ts:105:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async EnhancedWhatsAppService.sendBulkTemplateMessages (/home/runner/workspace/server/modern-routes.ts:178:24)
+Error stack: Error: WhatsApp API error: 400 Bad Request. Details: {"error":{"message":"(#132012) Parameter format does not match format in the created template","type":"OAuthException","code":132012,"error_data":{"messaging_product":"whatsapp","details":"header: Format mismatch, expected IMAGE, received UNKNOWN"},"fbtrace_id":"Af1VWyD8oAmCwg6TEzhMUQt"}}
+    at EnhancedWhatsAppService.sendMessage (/home/runner/workspace/server/modern-routes.ts:105:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async EnhancedWhatsAppService.sendBulkTemplateMessages (/home/runner/workspace/server/modern-routes.ts:178:24)
+=== BULK SEND COMPLETE ===
+Total results: 1
+Success count: 0
+Failed count: 1
+=== BULK MESSAGES COMPLETED ===
+Results: [
+  {
+    "recipient": "+918318868521",
+    "success": false,
+    "error": "WhatsApp API error: 400 Bad Request. Details: {\"error\":{\"message\":\"(#132012) Parameter format does not match format in the created template\",\"type\":\"OAuthException\",\"code\":132012,\"error_data\":{\"messaging_product\":\"whatsapp\",\"details\":\"header: Format mismatch, expected IMAGE, received UNKNOWN\"},\"fbtrace_id\":\"Af1VWyD8oAmCwg6TEzhMUQt\"}}"
+  }
+]
+Message 1 - +918318868521: FAILED: WhatsApp API error: 400 Bad Request. Details: {"error":{"message":"(#132012) Parameter format does not match format in the created template","type":"OAuthException","code":132012,"error_data":{"messaging_product":"whatsapp","details":"header: Format mismatch, expected IMAGE, received UNKNOWN"},"fbtrace_id":"Af1VWyD8oAmCwg6TEzhMUQt"}}
