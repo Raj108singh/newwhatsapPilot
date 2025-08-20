@@ -78,11 +78,11 @@ export default function LoginPage() {
                 )}
               </div>
               <div>
-                <h1 className="text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
                   {settings?.login_title || "WhatsApp Pro"}
                 </h1>
-                <div className="w-32 h-1 bg-blue-600 rounded-full mt-3"></div>
-                <p className="text-xl text-gray-600 dark:text-gray-300 font-semibold mt-4">
+                <div className="w-24 h-1 bg-blue-600 rounded-full mt-2"></div>
+                <p className="text-lg text-gray-600 dark:text-gray-300 font-medium mt-3">
                   {settings?.login_subtitle || "Professional WhatsApp Business Management Platform"}
                 </p>
               </div>
@@ -91,8 +91,8 @@ export default function LoginPage() {
 
           {/* Features Section with enhanced design */}
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
-              Powerful Features for Modern Business
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+              Key Features
             </h2>
             
             <div className="group">
@@ -101,10 +101,10 @@ export default function LoginPage() {
                   <Zap className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                     {settings?.login_feature_1_title || "Automated Responses"}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-sm">
                     {settings?.login_feature_1_description || "Smart chatbot with AI-powered auto-reply rules for instant customer support"}
                   </p>
                 </div>
@@ -117,10 +117,10 @@ export default function LoginPage() {
                   <Users className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                     {settings?.login_feature_2_title || "Bulk Messaging"}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-sm">
                     {settings?.login_feature_2_description || "Send personalized messages to thousands of contacts with templates"}
                   </p>
                 </div>
@@ -133,10 +133,10 @@ export default function LoginPage() {
                   <Shield className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                     {settings?.login_feature_3_title || "Secure & Reliable"}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-sm">
                     {settings?.login_feature_3_description || "Enterprise-grade security with real-time message tracking and status updates"}
                   </p>
                 </div>
@@ -167,11 +167,11 @@ export default function LoginPage() {
 
               <CardHeader className="space-y-6 p-8 lg:p-10">
                 <div className="text-center space-y-4">
-                  <CardTitle className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-                    Welcome Back
+                  <CardTitle className="text-2xl font-semibold text-gray-900 dark:text-white">
+                    {settings?.login_welcome_title || "Welcome Back"}
                   </CardTitle>
-                  <CardDescription className="text-lg text-gray-600 dark:text-gray-400 font-medium">
-                    Sign in to access your business dashboard
+                  <CardDescription className="text-base text-gray-600 dark:text-gray-300 mt-2">
+                    {settings?.login_welcome_description || "Sign in to access your WhatsApp Business dashboard"}
                   </CardDescription>
                   <div className="w-24 h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-full mx-auto"></div>
                 </div>
