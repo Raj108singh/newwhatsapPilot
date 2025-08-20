@@ -65,7 +65,9 @@ export default function SidebarModern() {
               }}
             />
           ) : null}
-          <div className={`w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-lg ${brandingSettings?.sidebar_logo ? 'hidden' : ''}`}>
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center shadow-lg ${brandingSettings?.sidebar_logo ? 'hidden' : ''}`} style={{ 
+            background: 'linear-gradient(135deg, var(--theme-primary-accent), var(--theme-secondary-accent))'
+          }}>
             <MessageSquare className="w-6 h-6 text-white" />
           </div>
           <span className="text-lg font-medium truncate" style={{ color: 'var(--theme-sidebar-text)' }}>

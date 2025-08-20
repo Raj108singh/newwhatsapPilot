@@ -42,14 +42,14 @@
   /* Custom Theme Variables */
   --theme-primary-bg: #ffffff;
   --theme-secondary-bg: #f8fafc;
-  --theme-sidebar-bg: #1e293b;
+  --theme-sidebar-bg: #ffffff;
   --theme-card-bg: #ffffff;
   --theme-primary-text: #1f2937;
   --theme-secondary-text: #6b7280;
   --theme-heading-text: #111827;
-  --theme-sidebar-text: #e2e8f0;
-  --theme-sidebar-icon: #94a3b8;
-  --theme-sidebar-hover-bg: #334155;
+  --theme-sidebar-text: #1f2937;
+  --theme-sidebar-icon: #6b7280;
+  --theme-sidebar-hover-bg: #f3f4f6;
   --theme-primary-accent: #3b82f6;
   --theme-secondary-accent: #6366f1;
   --theme-success: #10b981;
@@ -83,7 +83,13 @@ body {
   color: var(--theme-primary-text) !important;
 }
 
-.bg-card, [style*="bg-card"] {
+/* Main content area */
+.main-content {
+  background-color: var(--theme-secondary-bg) !important;
+}
+
+/* Cards and containers */
+.bg-white, .bg-card {
   background-color: var(--theme-card-bg) !important;
   color: var(--theme-primary-text) !important;
 }
@@ -97,18 +103,18 @@ body {
 }
 
 /* Apply theme to buttons */
-.btn-primary, [class*="bg-primary"]:not(.bg-primary-50) {
+button[class*="bg-blue"], .bg-primary, [class*="bg-primary"]:not(.bg-primary-50) {
   background-color: var(--theme-button-primary-bg) !important;
   color: var(--theme-button-primary-text) !important;
 }
 
-.btn-secondary, [class*="bg-secondary"] {
+button[class*="bg-gray"], .bg-secondary, [class*="bg-secondary"] {
   background-color: var(--theme-button-secondary-bg) !important;
   color: var(--theme-button-secondary-text) !important;
 }
 
 /* Apply theme to borders */
-.border, [class*="border-"] {
+.border-gray-200, .border-gray-300, .border {
   border-color: var(--theme-border) !important;
 }
 
@@ -126,12 +132,12 @@ body {
 }
 
 /* Apply to headings */
-h1, h2, h3, h4, h5, h6, .text-lg, .font-semibold, .font-bold {
+h1, h2, h3, h4, h5, h6, .font-semibold:not(.text-white):not([class*="text-"]), .font-bold:not(.text-white):not([class*="text-"]) {
   color: var(--theme-heading-text) !important;
 }
 
 /* Apply to secondary text */
-.text-gray-500, .text-slate-500, .text-muted-foreground {
+.text-gray-500, .text-slate-500, .text-muted-foreground, .text-gray-600:not(.text-blue-600):not(.text-green-600):not(.text-red-600) {
   color: var(--theme-secondary-text) !important;
 }
 

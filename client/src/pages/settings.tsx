@@ -35,15 +35,15 @@ export default function Settings() {
     // Background colors
     primary_bg_color: "#ffffff",
     secondary_bg_color: "#f8fafc",
-    sidebar_bg_color: "#1e293b",
+    sidebar_bg_color: "#ffffff",
     card_bg_color: "#ffffff",
     // Text colors
     primary_text_color: "#1f2937",
     secondary_text_color: "#6b7280",
     heading_text_color: "#111827",
-    sidebar_text_color: "#e2e8f0",
-    sidebar_icon_color: "#94a3b8",
-    sidebar_hover_bg: "#334155",
+    sidebar_text_color: "#1f2937",
+    sidebar_icon_color: "#6b7280",
+    sidebar_hover_bg: "#f3f4f6",
     // Accent colors
     primary_accent_color: "#3b82f6",
     secondary_accent_color: "#6366f1",
@@ -108,14 +108,14 @@ export default function Settings() {
         const themeData = {
           primary_bg_color: settings.primary_bg_color || "#ffffff",
           secondary_bg_color: settings.secondary_bg_color || "#f8fafc",
-          sidebar_bg_color: settings.sidebar_bg_color || "#1e293b",
+          sidebar_bg_color: settings.sidebar_bg_color || "#ffffff",
           card_bg_color: settings.card_bg_color || "#ffffff",
           primary_text_color: settings.primary_text_color || "#1f2937",
           secondary_text_color: settings.secondary_text_color || "#6b7280",
           heading_text_color: settings.heading_text_color || "#111827",
-          sidebar_text_color: settings.sidebar_text_color || "#e2e8f0",
-          sidebar_icon_color: settings.sidebar_icon_color || "#94a3b8",
-          sidebar_hover_bg: settings.sidebar_hover_bg || "#334155",
+          sidebar_text_color: settings.sidebar_text_color || "#1f2937",
+          sidebar_icon_color: settings.sidebar_icon_color || "#6b7280",
+          sidebar_hover_bg: settings.sidebar_hover_bg || "#f3f4f6",
           primary_accent_color: settings.primary_accent_color || "#3b82f6",
           secondary_accent_color: settings.secondary_accent_color || "#6366f1",
           success_color: settings.success_color || "#10b981",
@@ -308,14 +308,14 @@ export default function Settings() {
     const defaultTheme = {
       primary_bg_color: "#ffffff",
       secondary_bg_color: "#f8fafc",
-      sidebar_bg_color: "#1e293b",
+      sidebar_bg_color: "#ffffff",
       card_bg_color: "#ffffff",
       primary_text_color: "#1f2937",
       secondary_text_color: "#6b7280",
       heading_text_color: "#111827",
-      sidebar_text_color: "#e2e8f0",
-      sidebar_icon_color: "#94a3b8",
-      sidebar_hover_bg: "#334155",
+      sidebar_text_color: "#1f2937",
+      sidebar_icon_color: "#6b7280",
+      sidebar_hover_bg: "#f3f4f6",
       primary_accent_color: "#3b82f6",
       secondary_accent_color: "#6366f1",
       success_color: "#10b981",
@@ -1069,7 +1069,7 @@ export default function Settings() {
                                 setThemeSettings(newSettings);
                                 applyThemeToDocument(newSettings);
                               }}
-                              placeholder="#1e293b"
+                              placeholder="#ffffff"
                               className="flex-1 focus:border-purple-400 focus:ring-purple-400"
                             />
                           </div>
@@ -1127,7 +1127,7 @@ export default function Settings() {
                                 setThemeSettings(newSettings);
                                 applyThemeToDocument(newSettings);
                               }}
-                              placeholder="#94a3b8"
+                              placeholder="#6b7280"
                               className="flex-1 focus:border-indigo-400 focus:ring-indigo-400"
                             />
                           </div>
@@ -1155,7 +1155,7 @@ export default function Settings() {
                                 setThemeSettings(newSettings);
                                 applyThemeToDocument(newSettings);
                               }}
-                              placeholder="#334155"
+                              placeholder="#f3f4f6"
                               className="flex-1 focus:border-indigo-400 focus:ring-indigo-400"
                             />
                           </div>
@@ -1253,7 +1253,7 @@ export default function Settings() {
                                 setThemeSettings(newSettings);
                                 applyThemeToDocument(newSettings);
                               }}
-                              placeholder="#e2e8f0"
+                              placeholder="#1f2937"
                               className="flex-1 focus:border-blue-400 focus:ring-blue-400"
                             />
                           </div>
