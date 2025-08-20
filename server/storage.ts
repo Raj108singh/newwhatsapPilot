@@ -450,6 +450,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Temporarily use in-memory storage while firewall is configured for port 3306
-// MySQL is running on VPS but firewall blocks external connections
+// Temporarily use in-memory storage while MySQL remote access is configured
+// Port 3306 is open, but IP 34.74.104.238 needs permission in CWP
 export const storage = new MemStorage();
