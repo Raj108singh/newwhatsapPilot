@@ -64,9 +64,17 @@ class EnhancedWhatsAppService {
     const phoneNumberIdSetting = await storage.getSetting('whatsapp_phone_number_id');
     const businessAccountIdSetting = await storage.getSetting('whatsapp_business_account_id');
 
-    if (tokenSetting?.value) this.token = tokenSetting.value as string;
-    if (phoneNumberIdSetting?.value) this.phoneNumberId = phoneNumberIdSetting.value as string;
-    if (businessAccountIdSetting?.value) this.businessAccountId = businessAccountIdSetting.value as string;
+    // Clean values by removing quotes if present
+    const cleanValue = (value: string) => {
+      if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+        return JSON.parse(value);
+      }
+      return value;
+    };
+
+    if (tokenSetting?.value) this.token = cleanValue(tokenSetting.value as string);
+    if (phoneNumberIdSetting?.value) this.phoneNumberId = cleanValue(phoneNumberIdSetting.value as string);
+    if (businessAccountIdSetting?.value) this.businessAccountId = cleanValue(businessAccountIdSetting.value as string);
   }
 
   async sendMessage(message: any): Promise<any> {
