@@ -225,8 +225,27 @@ export const updateProfileSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
 });
 
+// Login page customization schema
+export const loginPageSettingsSchema = z.object({
+  login_logo: z.string().optional(),
+  login_title: z.string().min(1, "Login title is required"),
+  login_subtitle: z.string().min(1, "Login subtitle is required"),
+  login_welcome_title: z.string().min(1, "Welcome title is required"),
+  login_welcome_description: z.string().min(1, "Welcome description is required"),
+  login_background_gradient_from: z.string().optional(),
+  login_background_gradient_via: z.string().optional(), 
+  login_background_gradient_to: z.string().optional(),
+  login_feature_1_title: z.string().optional(),
+  login_feature_1_description: z.string().optional(),
+  login_feature_2_title: z.string().optional(),
+  login_feature_2_description: z.string().optional(),
+  login_feature_3_title: z.string().optional(),
+  login_feature_3_description: z.string().optional(),
+});
+
 export type ChangePassword = z.infer<typeof changePasswordSchema>;
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
+export type LoginPageSettings = z.infer<typeof loginPageSettingsSchema>;
 
 // Auth User type for authentication responses
 export interface AuthUser {

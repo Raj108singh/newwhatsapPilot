@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,25 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MessageSquare, Eye, EyeOff, Shield, Zap, Users } from "lucide-react";
 import { loginSchema, type LoginCredentials } from "@shared/schema";
 import { useLogin } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
   const loginMutation = useLogin();
+
+  // Load login page settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settingsData = await apiRequest("/api/settings");
+        setSettings(settingsData);
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const form = useForm<LoginCredentials>({
     resolver: zodResolver(loginSchema),
@@ -26,23 +41,32 @@ export default function LoginPage() {
     loginMutation.mutate(data);
   };
 
+  // Get dynamic settings with fallbacks
+  const backgroundGradient = settings 
+    ? `bg-gradient-to-br ${settings.login_background_gradient_from || 'from-blue-50'} ${settings.login_background_gradient_via || 'via-white'} ${settings.login_background_gradient_to || 'to-green-50'} dark:from-gray-900 dark:via-gray-800 dark:to-gray-900`
+    : 'bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+    <div className={`min-h-screen ${backgroundGradient} flex items-center justify-center p-4`}>
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
         
         {/* Left Side - Branding */}
         <div className="hidden lg:block space-y-8">
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-white" />
-              </div>
+              {settings?.login_logo ? (
+                <img src={settings.login_logo} alt="Logo" className="w-12 h-12 object-contain rounded-xl" />
+              ) : (
+                <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+              )}
               <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                WhatsApp Pro
+                {settings?.login_title || 'WhatsApp Pro'}
               </span>
             </div>
             <p className="text-xl text-gray-600 dark:text-gray-300">
-              Professional WhatsApp Business Management Platform
+              {settings?.login_subtitle || 'Professional WhatsApp Business Management Platform'}
             </p>
           </div>
 
@@ -53,10 +77,10 @@ export default function LoginPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Automated Responses
+                  {settings?.login_feature_1_title || 'Automated Responses'}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Smart chatbot with AI-powered auto-reply rules for instant customer support
+                  {settings?.login_feature_1_description || 'Smart chatbot with AI-powered auto-reply rules for instant customer support'}
                 </p>
               </div>
             </div>
@@ -67,10 +91,10 @@ export default function LoginPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Bulk Messaging
+                  {settings?.login_feature_2_title || 'Bulk Messaging'}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Send personalized messages to thousands of contacts with templates
+                  {settings?.login_feature_2_description || 'Send personalized messages to thousands of contacts with templates'}
                 </p>
               </div>
             </div>
@@ -81,10 +105,10 @@ export default function LoginPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Secure & Reliable
+                  {settings?.login_feature_3_title || 'Secure & Reliable'}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Enterprise-grade security with real-time message tracking and status updates
+                  {settings?.login_feature_3_description || 'Enterprise-grade security with real-time message tracking and status updates'}
                 </p>
               </div>
             </div>
@@ -96,19 +120,23 @@ export default function LoginPage() {
           <Card className="border-0 shadow-2xl">
             <CardHeader className="space-y-3 pb-6">
               <div className="lg:hidden flex items-center justify-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
-                  <MessageSquare className="w-5 h-5 text-white" />
-                </div>
+                {settings?.login_logo ? (
+                  <img src={settings.login_logo} alt="Logo" className="w-10 h-10 object-contain rounded-xl" />
+                ) : (
+                  <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-white" />
+                  </div>
+                )}
                 <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                  WhatsApp Pro
+                  {settings?.login_title || 'WhatsApp Pro'}
                 </span>
               </div>
               
               <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-white">
-                Welcome Back
+                {settings?.login_welcome_title || 'Welcome Back'}
               </CardTitle>
               <CardDescription className="text-center text-gray-600 dark:text-gray-400">
-                Sign in to access your WhatsApp Business dashboard
+                {settings?.login_welcome_description || 'Sign in to access your WhatsApp Business dashboard'}
               </CardDescription>
             </CardHeader>
 
