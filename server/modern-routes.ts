@@ -514,7 +514,12 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       const settingsMap: any = {};
       
       settings.forEach(setting => {
-        settingsMap[setting.key] = setting.value;
+        let value = setting.value;
+        // Parse JSON values if they are strings with quotes
+        if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+          value = JSON.parse(value);
+        }
+        settingsMap[setting.key] = value;
       });
 
       // Check WhatsApp configuration
@@ -550,11 +555,13 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
         if (key === 'verifyToken') settingKey = 'whatsapp_verify_token';
         if (key === 'businessAccountId') settingKey = 'whatsapp_business_account_id';
         
-        const category = settingKey.startsWith('whatsapp_') ? 'whatsapp' : 
-                        settingKey.startsWith('company_') ? 'branding' : 'general';
-        const isEncrypted = settingKey.includes('token') || settingKey.includes('secret');
+        // Ensure we store the value without extra quotes
+        let cleanValue = value as string;
+        if (typeof cleanValue === 'string' && cleanValue.startsWith('"') && cleanValue.endsWith('"')) {
+          cleanValue = cleanValue.slice(1, -1);
+        }
         
-        await storage.createOrUpdateSetting(settingKey, value as string);
+        await storage.createOrUpdateSetting(settingKey, cleanValue);
       }
 
       res.json({ success: true, message: "Settings updated successfully" });
