@@ -1,18 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import BulkMessageModal from "@/components/bulk-message-modal";
 import { Campaign, Message } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { websocketManager } from "@/lib/websocket";
+
+interface CampaignProgress {
+  campaignId: string;
+  totalRecipients: number;
+  processed: number;
+  remaining: number;
+  successCount: number;
+  failedCount: number;
+  progressPercent: number;
+  estimatedTimeRemaining: number;
+  currentRecipient: string;
+}
 
 export default function BulkMessage() {
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [campaignProgress, setCampaignProgress] = useState<Record<string, CampaignProgress>>({});
   const { toast } = useToast();
 
   const { data: campaigns = [], isLoading } = useQuery<Campaign[]>({
@@ -46,6 +61,51 @@ export default function BulkMessage() {
       });
     },
   });
+
+  // WebSocket listener for real-time progress updates
+  useEffect(() => {
+    const ws = websocketManager.getWebSocket();
+    if (!ws) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      const message = JSON.parse(event.data);
+      
+      if (message.type === 'campaign_progress') {
+        setCampaignProgress(prev => ({
+          ...prev,
+          [message.data.campaignId]: message.data
+        }));
+      }
+      
+      if (message.type === 'campaign_completed') {
+        setCampaignProgress(prev => {
+          const newProgress = { ...prev };
+          delete newProgress[message.data.campaignId];
+          return newProgress;
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      }
+      
+      if (message.type === 'campaign_failed') {
+        setCampaignProgress(prev => {
+          const newProgress = { ...prev };
+          delete newProgress[message.data.campaignId];
+          return newProgress;
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      }
+    };
+
+    ws.addEventListener('message', handleMessage);
+    return () => ws.removeEventListener('message', handleMessage);
+  }, [queryClient]);
+
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
 
   const handleViewDetails = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
@@ -95,6 +155,9 @@ export default function BulkMessage() {
                 ? ((campaign.sentCount / campaign.totalRecipients) * 100).toFixed(1)
                 : '0.0';
 
+              const progress = campaignProgress[campaign.id];
+              const isRunning = campaign.status === 'running' && progress;
+
               return (
                 <Card key={campaign.id} data-testid={`campaign-card-${campaign.id}`}>
                   <CardHeader>
@@ -113,6 +176,41 @@ export default function BulkMessage() {
                     </div>
                   </CardHeader>
                   <CardContent>
+                    {/* Real-time Progress Display */}
+                    {isRunning && (
+                      <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-blue-900">Campaign in Progress</h4>
+                          <div className="flex items-center space-x-2">
+                            <i className="fas fa-spinner fa-spin text-blue-600"></i>
+                            <span className="text-sm text-blue-700">
+                              {progress.processed}/{progress.totalRecipients} sent
+                            </span>
+                          </div>
+                        </div>
+                        <Progress 
+                          value={progress.progressPercent} 
+                          className="mb-3 h-2"
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div className="text-center">
+                            <span className="font-medium text-green-600">{progress.processed.toLocaleString()}</span>
+                            <p className="text-green-700">Sent</p>
+                          </div>
+                          <div className="text-center">
+                            <span className="font-medium text-gray-600">{progress.remaining.toLocaleString()}</span>
+                            <p className="text-gray-700">Remaining</p>
+                          </div>
+                          <div className="text-center">
+                            <span className="font-medium text-blue-600">{formatTime(progress.estimatedTimeRemaining)}</span>
+                            <p className="text-blue-700">Time left</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-600">
+                          Current: {progress.currentRecipient}
+                        </div>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                       <div className="text-center">
                         <p className="text-2xl font-bold text-slate-900">{campaign.totalRecipients.toLocaleString()}</p>

@@ -126,7 +126,7 @@ class EnhancedWhatsAppService {
     return data.data || [];
   }
 
-  async sendBulkTemplateMessages(recipients: string[], template: any, parameters: any[] = []): Promise<any[]> {
+  async sendBulkTemplateMessages(recipients: string[], template: any, parameters: any[] = [], campaignId?: string, broadcastProgress?: (progress: any) => void): Promise<any[]> {
     console.log('=== SEND BULK TEMPLATE MESSAGES CALLED ===');
     console.log('Recipients count:', recipients.length);
     console.log('Template name:', template?.name);
@@ -148,6 +148,7 @@ class EnhancedWhatsAppService {
     }
 
     const results = [];
+    const startTime = Date.now();
     console.log('=== STARTING TO SEND TO RECIPIENTS ===');
     
     for (let i = 0; i < recipients.length; i++) {
@@ -216,6 +217,28 @@ class EnhancedWhatsAppService {
         
         console.log('=== MESSAGE STORED SUCCESSFULLY ===');
         console.log('Template message stored with ID:', storedMessage.id);
+
+        // Broadcast progress update after each successful send
+        if (broadcastProgress) {
+          const currentTime = Date.now();
+          const elapsedTime = currentTime - startTime;
+          const processed = i + 1;
+          const remaining = recipients.length - processed;
+          const avgTimePerMessage = elapsedTime / processed;
+          const estimatedTimeRemaining = Math.round((remaining * avgTimePerMessage) / 1000); // in seconds
+          
+          broadcastProgress({
+            campaignId,
+            totalRecipients: recipients.length,
+            processed,
+            remaining,
+            successCount: results.filter(r => r.success).length + 1, // +1 for current success
+            failedCount: results.filter(r => !r.success).length,
+            progressPercent: Math.round((processed / recipients.length) * 100),
+            estimatedTimeRemaining,
+            currentRecipient: recipient
+          });
+        }
 
       } catch (error) {
         console.error(`=== FAILED TO SEND MESSAGE TO ${recipient} ===`);
@@ -1123,7 +1146,13 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       console.log('Recipients array:', recipients);
       console.log('Parameters array:', parameters);
       
-      whatsappService.sendBulkTemplateMessages(recipients, template, parameters)
+      whatsappService.sendBulkTemplateMessages(recipients, template, parameters, campaign.id, (progress) => {
+        // Broadcast real-time progress updates
+        broadcastMessage({
+          type: 'campaign_progress',
+          data: progress,
+        });
+      })
         .then(async (results) => {
           console.log('=== BULK MESSAGES COMPLETED ===');
           console.log('Results:', JSON.stringify(results, null, 2));
