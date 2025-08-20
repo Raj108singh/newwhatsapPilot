@@ -24,6 +24,7 @@ export default function ConversationsPage() {
 
   const { data: conversations = [], isLoading: loadingConversations } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
+    refetchInterval: 3000, // Refresh every 3 seconds to get new conversations
   });
 
   const { data: messages = [], isLoading: loadingMessages } = useQuery<Message[]>({

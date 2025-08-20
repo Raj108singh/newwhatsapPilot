@@ -241,11 +241,7 @@ class EnhancedWhatsAppService {
           lastMessageAt: new Date()
         });
         
-        // Broadcast message to WebSocket clients for real-time updates
-        broadcastMessage({
-          type: 'new_message',
-          data: storedMessage,
-        });
+        // Note: Real-time updates handled by webhook endpoint
 
         // Broadcast progress update after each successful send
         if (broadcastProgress) {

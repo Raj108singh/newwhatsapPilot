@@ -10,10 +10,26 @@ interface TemplateMessageProps {
 }
 
 export default function TemplateMessage({ templateData, buttons, mediaUrl, content, isInbound = false }: TemplateMessageProps) {
-  if (!templateData) {
+  // Parse templateData if it's a string
+  let parsedTemplateData = templateData;
+  if (typeof templateData === 'string') {
+    try {
+      parsedTemplateData = JSON.parse(templateData);
+    } catch (error) {
+      console.error('Failed to parse templateData:', error);
+      parsedTemplateData = null;
+    }
+  }
+  
+  if (!parsedTemplateData || !Array.isArray(parsedTemplateData)) {
     return (
-      <div className="font-medium whitespace-pre-wrap">
-        📋 {content}
+      <div className={cn(
+        "rounded-lg p-4",
+        isInbound ? "bg-white border border-slate-200" : "bg-green-100"
+      )}>
+        <div className="font-medium whitespace-pre-wrap">
+          📋 {content}
+        </div>
         {!isInbound && (
           <div className="text-xs mt-2 opacity-75">
             <i className="fas fa-certificate mr-1"></i>
@@ -24,10 +40,10 @@ export default function TemplateMessage({ templateData, buttons, mediaUrl, conte
     );
   }
 
-  const headerComponent = templateData.find((c: any) => c.type === 'HEADER');
-  const bodyComponent = templateData.find((c: any) => c.type === 'BODY');
-  const footerComponent = templateData.find((c: any) => c.type === 'FOOTER');
-  const buttonComponent = templateData.find((c: any) => c.type === 'BUTTONS');
+  const headerComponent = parsedTemplateData.find((c: any) => c.type === 'HEADER');
+  const bodyComponent = parsedTemplateData.find((c: any) => c.type === 'BODY');
+  const footerComponent = parsedTemplateData.find((c: any) => c.type === 'FOOTER');
+  const buttonComponent = parsedTemplateData.find((c: any) => c.type === 'BUTTONS');
 
   return (
     <div className={cn(

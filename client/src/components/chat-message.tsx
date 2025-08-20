@@ -28,15 +28,16 @@ export default function ChatMessage({ message, contact }: ChatMessageProps) {
   return (
     <div className={cn(
       "flex items-end space-x-2 mb-4",
-      isInbound ? "justify-start" : "justify-end flex-row-reverse space-x-reverse"
+      isInbound ? "justify-start" : "justify-end"
     )} data-testid={`message-${message.id}`}>
-      <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-        <i className={cn(
-          "fas text-sm",
-          isInbound ? "fa-user text-slate-500" : "fa-user-circle text-green-600"
-        )}></i>
-      </div>
-      <div className={cn("flex flex-col", isInbound ? "items-start" : "items-end")}>
+      {/* Avatar - Left for inbound, Right for outbound */}
+      {isInbound && (
+        <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+          <i className="fas fa-user text-slate-500 text-sm"></i>
+        </div>
+      )}
+      
+      <div className={cn("flex flex-col max-w-xs", isInbound ? "items-start" : "items-end")}>
         <div className={cn(
           "flex items-center space-x-2 mb-1 text-xs",
           isInbound ? "justify-start" : "justify-end"
@@ -117,6 +118,13 @@ export default function ChatMessage({ message, contact }: ChatMessageProps) {
           </div>
         )}
       </div>
+      
+      {/* Avatar - Right for outbound messages */}
+      {!isInbound && (
+        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+          <i className="fas fa-user-circle text-white text-sm"></i>
+        </div>
+      )}
     </div>
   );
 }
