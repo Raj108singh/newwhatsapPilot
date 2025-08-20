@@ -245,10 +245,10 @@ export default function Settings() {
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-5xl mx-auto">
           <Tabs defaultValue="whatsapp" className="space-y-10">
-            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 p-2 rounded-2xl shadow-2xl border-2 border-slate-200 dark:border-gray-600 backdrop-blur-sm relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-blue-400/10 before:via-purple-400/10 before:to-pink-400/10 before:rounded-2xl">
+            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 p-3 rounded-2xl shadow-2xl border-2 border-slate-200 dark:border-gray-600 backdrop-blur-sm relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-blue-400/10 before:via-purple-400/10 before:to-pink-400/10 before:rounded-2xl min-h-[5rem]">
               <TabsTrigger 
                 value="whatsapp" 
-                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-500 data-[state=active]:via-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-green-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-green-300 hover:bg-green-50 hover:text-green-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-2.5 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[3rem]"
+                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-500 data-[state=active]:via-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-green-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-green-300 hover:bg-green-50 hover:text-green-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-4 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[4rem]"
               >
                 <i className="fab fa-whatsapp text-lg"></i>
                 <span className="hidden sm:inline font-semibold text-sm">WhatsApp API</span>
@@ -256,7 +256,7 @@ export default function Settings() {
               </TabsTrigger>
               <TabsTrigger 
                 value="general" 
-                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:via-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-blue-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-2.5 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[3rem]"
+                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:via-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-blue-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-4 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[4rem]"
               >
                 <i className="fas fa-cogs text-lg"></i>
                 <span className="hidden sm:inline font-semibold text-sm">General</span>
@@ -264,7 +264,7 @@ export default function Settings() {
               </TabsTrigger>
               <TabsTrigger 
                 value="admin" 
-                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-purple-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-purple-300 hover:bg-purple-50 hover:text-purple-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-2.5 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[3rem]"
+                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-purple-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-purple-300 hover:bg-purple-50 hover:text-purple-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-4 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[4rem]"
               >
                 <i className="fas fa-user-shield text-lg"></i>
                 <span className="hidden sm:inline font-semibold text-sm">Admin</span>
@@ -272,7 +272,7 @@ export default function Settings() {
               </TabsTrigger>
               <TabsTrigger 
                 value="notifications" 
-                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-orange-500 data-[state=active]:via-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-orange-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-orange-300 hover:bg-orange-50 hover:text-orange-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-2.5 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[3rem]"
+                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-orange-500 data-[state=active]:via-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-orange-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-orange-300 hover:bg-orange-50 hover:text-orange-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-4 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[4rem]"
               >
                 <i className="fas fa-bell text-lg"></i>
                 <span className="hidden sm:inline font-semibold text-sm">Notifications</span>
