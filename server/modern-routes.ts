@@ -181,8 +181,13 @@ class EnhancedWhatsAppService {
         
         results.push({ recipient, success: true, result });
 
+        // Parse template components if they're stored as string
+        const templateComponents = typeof template.components === 'string' 
+          ? JSON.parse(template.components) 
+          : template.components;
+        
         // Store complete template message with actual content
-        const bodyComponent = (template.components as any[])?.find((c: any) => c.type === 'BODY');
+        const bodyComponent = templateComponents?.find((c: any) => c.type === 'BODY');
         let actualContent = bodyComponent?.text || `Template: ${template.name}`;
         
         // Replace template parameters in content for display
@@ -257,10 +262,11 @@ class EnhancedWhatsAppService {
     let paramIndex = 0;
     
     parsedComponents.forEach((component: any) => {
+      // Handle HEADER components (TEXT, IMAGE, VIDEO, DOCUMENT)
       if (component.type === "HEADER") {
         if (component.format === "TEXT" && component.text) {
           const headerMatches = component.text.match(/\{\{(\d+)\}\}/g);
-          if (headerMatches && parameters.length > 0) {
+          if (headerMatches && parameters.length > paramIndex) {
             components.push({
               type: "header",
               parameters: headerMatches.map(() => ({
@@ -270,22 +276,44 @@ class EnhancedWhatsAppService {
             });
           }
         } else if (component.format === "IMAGE") {
-          // For IMAGE headers, we need to provide an image parameter
-          // If no image URL is provided in parameters, skip the header component
+          // For IMAGE headers, provide image URL parameter if available
           if (parameters.length > paramIndex && parameters[paramIndex]) {
             components.push({
               type: "header",
               parameters: [{
                 type: "image",
-                image: {
-                  link: parameters[paramIndex++]
+                image: { link: parameters[paramIndex++] }
+              }]
+            });
+          }
+        } else if (component.format === "VIDEO") {
+          if (parameters.length > paramIndex && parameters[paramIndex]) {
+            components.push({
+              type: "header",
+              parameters: [{
+                type: "video",
+                video: { link: parameters[paramIndex++] }
+              }]
+            });
+          }
+        } else if (component.format === "DOCUMENT") {
+          if (parameters.length > paramIndex && parameters[paramIndex]) {
+            components.push({
+              type: "header",
+              parameters: [{
+                type: "document",
+                document: { 
+                  link: parameters[paramIndex++],
+                  filename: parameters[paramIndex] || "document.pdf"
                 }
               }]
             });
+            if (parameters[paramIndex]) paramIndex++; // Skip filename if provided
           }
         }
       }
       
+      // Handle BODY components with variable substitution
       if (component.type === "BODY" && component.text) {
         const bodyMatches = component.text.match(/\{\{(\d+)\}\}/g);
         if (bodyMatches && bodyMatches.length > 0) {
@@ -299,28 +327,71 @@ class EnhancedWhatsAppService {
         }
       }
       
+      // Handle BUTTONS components (URL, PHONE_NUMBER, QUICK_REPLY, COPY_CODE, FLOW)
       if (component.type === "BUTTONS" && component.buttons) {
-        const buttonParams: any[] = [];
         component.buttons.forEach((button: any, buttonIndex: number) => {
-          if (button.type === "URL" && button.url && button.url.includes("{{")) {
+          if (button.type === "URL" && button.url) {
             const urlMatches = button.url.match(/\{\{(\d+)\}\}/g);
-            if (urlMatches) {
-              urlMatches.forEach(() => {
-                buttonParams.push({
+            if (urlMatches && parameters.length > paramIndex) {
+              components.push({
+                type: "button",
+                sub_type: "url",
+                index: buttonIndex.toString(),
+                parameters: urlMatches.map(() => ({
                   type: "text",
                   text: parameters[paramIndex++] || ""
-                });
+                }))
+              });
+            }
+          } else if (button.type === "COPY_CODE" && button.example) {
+            // Copy code buttons need the code parameter
+            if (parameters.length > paramIndex) {
+              components.push({
+                type: "button",
+                sub_type: "copy_code",
+                index: buttonIndex.toString(),
+                parameters: [{
+                  type: "coupon_code",
+                  coupon_code: parameters[paramIndex++] || button.example[0] || ""
+                }]
+              });
+            }
+          } else if (button.type === "FLOW" && button.flow_action_data) {
+            // Flow buttons with dynamic parameters
+            const flowData = button.flow_action_data;
+            if (flowData.flow_action_payload && parameters.length > paramIndex) {
+              const flowPayload = typeof flowData.flow_action_payload === 'string' 
+                ? JSON.parse(flowData.flow_action_payload) 
+                : flowData.flow_action_payload;
+              
+              components.push({
+                type: "button",
+                sub_type: "flow",
+                index: buttonIndex.toString(),
+                parameters: [{
+                  type: "action",
+                  action: {
+                    flow_token: parameters[paramIndex++] || flowPayload.flow_token || "",
+                    flow_action_data: flowPayload
+                  }
+                }]
               });
             }
           }
+          // PHONE_NUMBER and QUICK_REPLY buttons don't need parameters
         });
-        
-        if (buttonParams.length > 0) {
+      }
+      
+      // Handle FOOTER components (rarely used but for completeness)
+      if (component.type === "FOOTER" && component.text) {
+        const footerMatches = component.text.match(/\{\{(\d+)\}\}/g);
+        if (footerMatches && parameters.length > paramIndex) {
           components.push({
-            type: "button",
-            sub_type: "url",
-            index: "0",
-            parameters: buttonParams
+            type: "footer",
+            parameters: footerMatches.map(() => ({
+              type: "text",
+              text: parameters[paramIndex++] || ""
+            }))
           });
         }
       }
