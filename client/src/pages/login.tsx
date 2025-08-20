@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,25 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MessageSquare, Eye, EyeOff, Shield, Zap, Users, ArrowRight } from "lucide-react";
 import { loginSchema, type LoginCredentials } from "@shared/schema";
 import { useLogin } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
   const loginMutation = useLogin();
+
+  // Load login page settings from database
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settingsData = await apiRequest("/api/settings");
+        setSettings(settingsData);
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const form = useForm<LoginCredentials>({
     resolver: zodResolver(loginSchema),
@@ -27,12 +42,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-20 left-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
-        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"></div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+      {/* Subtle background */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0" 
+          style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.15) 1px, transparent 0)',
+            backgroundSize: '20px 20px'
+          }}>
+        </div>
       </div>
 
       <div className="w-full max-w-7xl grid lg:grid-cols-2 gap-12 items-center relative z-10">
@@ -43,18 +61,29 @@ export default function LoginPage() {
           <div className="space-y-8">
             <div className="flex items-center space-x-5">
               <div className="relative">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-3xl flex items-center justify-center shadow-2xl">
-                  <MessageSquare className="w-10 h-10 text-white" />
-                </div>
-                <div className="absolute -inset-3 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-3xl opacity-20 blur-lg animate-pulse"></div>
+                {settings?.login_logo ? (
+                  <img 
+                    src={settings.login_logo} 
+                    alt="Logo" 
+                    className="w-20 h-20 rounded-2xl shadow-lg object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <MessageSquare className="w-10 h-10 text-white" />
+                  </div>
+                )}
               </div>
               <div>
                 <h1 className="text-5xl font-black text-gray-900 dark:text-white tracking-tight">
-                  WhatsApp Pro
+                  {settings?.login_title || "WhatsApp Pro"}
                 </h1>
-                <div className="w-32 h-1.5 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-full mt-3"></div>
+                <div className="w-32 h-1 bg-blue-600 rounded-full mt-3"></div>
                 <p className="text-xl text-gray-600 dark:text-gray-300 font-semibold mt-4">
-                  Enterprise Business Messaging Platform
+                  {settings?.login_subtitle || "Professional WhatsApp Business Management Platform"}
                 </p>
               </div>
             </div>
@@ -67,48 +96,48 @@ export default function LoginPage() {
             </h2>
             
             <div className="group">
-              <div className="flex items-start space-x-6 p-6 rounded-2xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-white/30 hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex items-start space-x-6 p-6 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300">
+                <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center shadow-md">
                   <Zap className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-blue-600 transition-colors">
-                    Smart Automation
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                    {settings?.login_feature_1_title || "Automated Responses"}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
-                    AI-powered chatbot with intelligent auto-reply rules for instant customer support and engagement
+                    {settings?.login_feature_1_description || "Smart chatbot with AI-powered auto-reply rules for instant customer support"}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="group">
-              <div className="flex items-start space-x-6 p-6 rounded-2xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-white/30 hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex items-start space-x-6 p-6 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300">
+                <div className="w-14 h-14 bg-green-600 rounded-xl flex items-center justify-center shadow-md">
                   <Users className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-green-600 transition-colors">
-                    Bulk Messaging
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                    {settings?.login_feature_2_title || "Bulk Messaging"}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
-                    Send personalized messages to thousands of contacts using professional templates and campaigns
+                    {settings?.login_feature_2_description || "Send personalized messages to thousands of contacts with templates"}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="group">
-              <div className="flex items-start space-x-6 p-6 rounded-2xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-white/30 hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex items-start space-x-6 p-6 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300">
+                <div className="w-14 h-14 bg-purple-600 rounded-xl flex items-center justify-center shadow-md">
                   <Shield className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-purple-600 transition-colors">
-                    Enterprise Security
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                    {settings?.login_feature_3_title || "Secure & Reliable"}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
-                    Bank-grade security with real-time message tracking, analytics, and comprehensive audit trails
+                    {settings?.login_feature_3_description || "Enterprise-grade security with real-time message tracking and status updates"}
                   </p>
                 </div>
               </div>

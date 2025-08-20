@@ -31,9 +31,23 @@ export default function Settings() {
     footer_text: "Powered by WhatsApp Pro"
   });
 
+  const [loginPageSettings, setLoginPageSettings] = useState({
+    login_logo: "",
+    login_title: "WhatsApp Pro",
+    login_subtitle: "Professional WhatsApp Business Management Platform",
+    login_welcome_title: "Welcome Back",
+    login_welcome_description: "Sign in to access your WhatsApp Business dashboard",
+    login_feature_1_title: "Automated Responses",
+    login_feature_1_description: "Smart chatbot with AI-powered auto-reply rules for instant customer support",
+    login_feature_2_title: "Bulk Messaging",
+    login_feature_2_description: "Send personalized messages to thousands of contacts with templates",
+    login_feature_3_title: "Secure & Reliable",
+    login_feature_3_description: "Enterprise-grade security with real-time message tracking and status updates"
+  });
   const [currentSettings, setCurrentSettings] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingGeneral, setIsSavingGeneral] = useState(false);
+  const [isSavingLogin, setIsSavingLogin] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -75,7 +89,20 @@ export default function Settings() {
           footer_text: settings.footer_text || "Powered by WhatsApp Pro"
         });
         
-
+        // Load login page settings
+        setLoginPageSettings({
+          login_logo: settings.login_logo || "",
+          login_title: settings.login_title || "WhatsApp Pro",
+          login_subtitle: settings.login_subtitle || "Professional WhatsApp Business Management Platform",
+          login_welcome_title: settings.login_welcome_title || "Welcome Back",
+          login_welcome_description: settings.login_welcome_description || "Sign in to access your WhatsApp Business dashboard",
+          login_feature_1_title: settings.login_feature_1_title || "Automated Responses",
+          login_feature_1_description: settings.login_feature_1_description || "Smart chatbot with AI-powered auto-reply rules for instant customer support",
+          login_feature_2_title: settings.login_feature_2_title || "Bulk Messaging",
+          login_feature_2_description: settings.login_feature_2_description || "Send personalized messages to thousands of contacts with templates",
+          login_feature_3_title: settings.login_feature_3_title || "Secure & Reliable",
+          login_feature_3_description: settings.login_feature_3_description || "Enterprise-grade security with real-time message tracking and status updates"
+        });
         
         // Also populate WhatsApp settings
         setWhatsappSettings({
@@ -177,7 +204,36 @@ export default function Settings() {
     }
   };
 
+  const handleLoginPageUpdate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSavingLogin(true);
 
+    try {
+      await apiRequest("/api/settings", {
+        method: "POST",
+        body: JSON.stringify(loginPageSettings),
+      });
+
+      toast({
+        title: "Login Page Settings Saved",
+        description: "Your login page customization has been updated successfully.",
+      });
+      
+      // Update current settings to reflect changes
+      setCurrentSettings((prev: any) => ({ ...prev, ...loginPageSettings }));
+      
+      // Invalidate cache to update login page instantly
+      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+    } catch (error: any) {
+      toast({
+        title: "Save Failed",
+        description: error.message || "Failed to save login page settings",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingLogin(false);
+    }
+  };
 
   const handlePasswordChange = async (data: ChangePassword) => {
     try {
@@ -251,7 +307,7 @@ export default function Settings() {
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-5xl mx-auto">
           <Tabs defaultValue="whatsapp" className="space-y-10">
-            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 p-3 rounded-2xl shadow-2xl border-2 border-slate-200 dark:border-gray-600 backdrop-blur-sm relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-blue-400/10 before:via-purple-400/10 before:to-pink-400/10 before:rounded-2xl min-h-[5rem]">
+            <TabsList className="grid w-full grid-cols-5 bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 p-3 rounded-2xl shadow-2xl border-2 border-slate-200 dark:border-gray-600 backdrop-blur-sm relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-blue-400/10 before:via-purple-400/10 before:to-pink-400/10 before:rounded-2xl min-h-[5rem]">
               <TabsTrigger 
                 value="whatsapp" 
                 className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-500 data-[state=active]:via-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-green-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-green-300 hover:bg-green-50 hover:text-green-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-4 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[4rem]"
@@ -275,6 +331,15 @@ export default function Settings() {
                 <i className="fas fa-user-shield text-lg"></i>
                 <span className="hidden sm:inline font-semibold text-sm">Admin</span>
                 <span className="sm:hidden font-semibold text-xs">Admin</span>
+              </TabsTrigger>
+
+              <TabsTrigger 
+                value="login-page" 
+                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-cyan-500 data-[state=active]:via-teal-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-cyan-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-700 hover:scale-102 transition-all duration-300 font-medium rounded-lg px-3 py-4 flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 min-h-[4rem]"
+              >
+                <i className="fas fa-sign-in-alt text-lg"></i>
+                <span className="hidden sm:inline font-semibold text-sm">Login Page</span>
+                <span className="sm:hidden font-semibold text-xs">Login</span>
               </TabsTrigger>
 
               <TabsTrigger 
@@ -814,6 +879,213 @@ export default function Settings() {
             </TabsContent>
 
 
+
+            <TabsContent value="login-page" className="space-y-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 shadow-lg">
+                <CardHeader className="bg-blue-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-sign-in-alt text-white"></i>
+                    </div>
+                    Login Page Customization
+                  </CardTitle>
+                  <p className="text-blue-100 text-sm mt-2">Customize the login page branding and content (Secure Admin Only)</p>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <form onSubmit={handleLoginPageUpdate} className="space-y-6">
+                    
+                    {/* Logo Section */}
+                    <div className="space-y-2">
+                      <Label htmlFor="loginLogo" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                        <i className="fas fa-image text-blue-600"></i>
+                        Login Logo URL
+                      </Label>
+                      <Input
+                        id="loginLogo"
+                        value={loginPageSettings.login_logo}
+                        onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_logo: e.target.value }))}
+                        placeholder="https://example.com/logo.png (leave empty for default)"
+                        className="focus:border-blue-400 focus:ring-blue-400"
+                      />
+                      {loginPageSettings.login_logo && (
+                        <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <img 
+                            src={loginPageSettings.login_logo} 
+                            alt="Preview" 
+                            className="w-8 h-8 object-contain rounded"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                          <p className="text-sm text-blue-700 dark:text-blue-300">Preview of your login logo</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Title and Subtitle */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="loginTitle" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                          <i className="fas fa-heading text-blue-600"></i>
+                          App Title
+                        </Label>
+                        <Input
+                          id="loginTitle"
+                          value={loginPageSettings.login_title}
+                          onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_title: e.target.value }))}
+                          placeholder="WhatsApp Pro"
+                          className="focus:border-blue-400 focus:ring-blue-400"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="loginSubtitle" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                          <i className="fas fa-text-height text-indigo-600"></i>
+                          App Subtitle
+                        </Label>
+                        <Input
+                          id="loginSubtitle"
+                          value={loginPageSettings.login_subtitle}
+                          onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_subtitle: e.target.value }))}
+                          placeholder="Professional WhatsApp Business Management Platform"
+                          className="focus:border-indigo-400 focus:ring-indigo-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Welcome Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="welcomeTitle" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                          <i className="fas fa-hand-wave text-green-600"></i>
+                          Welcome Title
+                        </Label>
+                        <Input
+                          id="welcomeTitle"
+                          value={loginPageSettings.login_welcome_title}
+                          onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_welcome_title: e.target.value }))}
+                          placeholder="Welcome Back"
+                          className="focus:border-green-400 focus:ring-green-400"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="welcomeDescription" className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                          <i className="fas fa-comment text-teal-600"></i>
+                          Welcome Description
+                        </Label>
+                        <Input
+                          id="welcomeDescription"
+                          value={loginPageSettings.login_welcome_description}
+                          onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_welcome_description: e.target.value }))}
+                          placeholder="Sign in to access your WhatsApp Business dashboard"
+                          className="focus:border-teal-400 focus:ring-teal-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Features Section */}
+                    <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <h4 className="font-medium flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                        <i className="fas fa-star text-yellow-600"></i>
+                        Feature Highlights
+                      </h4>
+                      
+                      {/* Feature 1 */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="feature1Title" className="text-sm">Feature 1 Title</Label>
+                          <Input
+                            id="feature1Title"
+                            value={loginPageSettings.login_feature_1_title}
+                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_1_title: e.target.value }))}
+                            placeholder="Automated Responses"
+                            className="text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="feature1Desc" className="text-sm">Feature 1 Description</Label>
+                          <Input
+                            id="feature1Desc"
+                            value={loginPageSettings.login_feature_1_description}
+                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_1_description: e.target.value }))}
+                            placeholder="Smart chatbot with AI-powered auto-reply rules"
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Feature 2 */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="feature2Title" className="text-sm">Feature 2 Title</Label>
+                          <Input
+                            id="feature2Title"
+                            value={loginPageSettings.login_feature_2_title}
+                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_2_title: e.target.value }))}
+                            placeholder="Bulk Messaging"
+                            className="text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="feature2Desc" className="text-sm">Feature 2 Description</Label>
+                          <Input
+                            id="feature2Desc"
+                            value={loginPageSettings.login_feature_2_description}
+                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_2_description: e.target.value }))}
+                            placeholder="Send personalized messages to thousands of contacts"
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Feature 3 */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="feature3Title" className="text-sm">Feature 3 Title</Label>
+                          <Input
+                            id="feature3Title"
+                            value={loginPageSettings.login_feature_3_title}
+                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_3_title: e.target.value }))}
+                            placeholder="Secure & Reliable"
+                            className="text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="feature3Desc" className="text-sm">Feature 3 Description</Label>
+                          <Input
+                            id="feature3Desc"
+                            value={loginPageSettings.login_feature_3_description}
+                            onChange={(e) => setLoginPageSettings(prev => ({ ...prev, login_feature_3_description: e.target.value }))}
+                            placeholder="Enterprise-grade security with real-time tracking"
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      <Button 
+                        type="submit" 
+                        disabled={isSavingLogin}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg"
+                      >
+                        {isSavingLogin ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            Saving Login Page Settings...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-save mr-2"></i>
+                            Save Login Page Settings
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="notifications" className="space-y-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
               <Card className="bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-800 dark:to-gray-700 border-orange-200 dark:border-gray-600 shadow-xl">
