@@ -450,6 +450,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Temporarily use in-memory storage while VPS MySQL is being configured
-// TODO: Switch to DatabaseStorage when VPS MySQL accepts external connections
+// Temporarily use in-memory storage while VPS port 2031 connection is tested
+// TODO: Switch to DatabaseStorage when VPS MySQL on port 2031 is accessible
 export const storage = new MemStorage();
