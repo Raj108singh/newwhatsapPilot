@@ -5,7 +5,7 @@ import {
   type AutoReplyRule, type InsertAutoReplyRule, type Conversation, type InsertConversation,
   type UserSession, type InsertUserSession
 } from "@shared/schema";
-import { db } from "./db";
+import { db } from "./db-mysql";
 import { eq, desc, and, or, sql } from "drizzle-orm";
 import type { IStorage } from "./storage";
 
