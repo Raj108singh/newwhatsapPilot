@@ -450,6 +450,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use in-memory storage for now due to remote database connectivity
-// TODO: Switch to DatabaseStorage when VPS connectivity is resolved
+// Temporarily use in-memory storage while VPS MySQL connection is configured
+// TODO: Switch to DatabaseStorage when VPS MySQL allows external connections
 export const storage = new MemStorage();

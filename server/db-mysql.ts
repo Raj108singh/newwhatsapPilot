@@ -6,8 +6,13 @@ import * as schema from "@shared/schema";
 let connectionConfig: any;
 
 if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql://')) {
-  // Use MySQL connection string
-  connectionConfig = process.env.DATABASE_URL;
+  // Update DATABASE_URL to use VPS IP instead of localhost
+  let databaseUrl = process.env.DATABASE_URL;
+  if (process.env.VPS_IP_ADDRESS && databaseUrl.includes('@localhost:')) {
+    databaseUrl = databaseUrl.replace('@localhost:', `@${process.env.VPS_IP_ADDRESS}:`);
+    console.log(`✅ Updated DATABASE_URL to use VPS IP: ${process.env.VPS_IP_ADDRESS}`);
+  }
+  connectionConfig = databaseUrl;
   console.log('✅ Using MySQL DATABASE_URL for database connection');
 } else {
   // Default MySQL configuration for local development
