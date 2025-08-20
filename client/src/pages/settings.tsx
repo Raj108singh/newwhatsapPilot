@@ -243,38 +243,40 @@ export default function Settings() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl mx-auto">
-          <Tabs defaultValue="whatsapp" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-100 to-slate-200 dark:from-gray-800 dark:to-gray-700 p-2 rounded-xl shadow-lg border-2 border-slate-200 dark:border-gray-600">
+        <div className="max-w-5xl mx-auto">
+          <Tabs defaultValue="whatsapp" className="space-y-10">
+            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 p-3 rounded-2xl shadow-2xl border-4 border-white dark:border-gray-600 backdrop-blur-sm relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-blue-400/10 before:via-purple-400/10 before:to-pink-400/10 before:rounded-2xl">
               <TabsTrigger 
                 value="whatsapp" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:transform data-[state=active]:scale-105 transition-all duration-300 font-medium rounded-lg px-4 py-3 flex items-center gap-2"
+                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-500 data-[state=active]:via-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-2xl data-[state=active]:shadow-green-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-green-300 hover:bg-green-50 hover:text-green-700 hover:scale-102 transition-all duration-300 font-semibold rounded-xl px-6 py-4 flex items-center gap-3 text-gray-600 dark:text-gray-300"
               >
-                <i className="fab fa-whatsapp text-lg"></i>
-                <span className="hidden sm:inline">WhatsApp API</span>
-                <span className="sm:hidden">API</span>
+                <i className="fab fa-whatsapp text-xl drop-shadow-sm"></i>
+                <span className="hidden sm:inline font-bold tracking-wide">WhatsApp API</span>
+                <span className="sm:hidden font-bold">API</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="general" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:transform data-[state=active]:scale-105 transition-all duration-300 font-medium rounded-lg px-4 py-3 flex items-center gap-2"
+                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:via-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-2xl data-[state=active]:shadow-blue-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:scale-102 transition-all duration-300 font-semibold rounded-xl px-6 py-4 flex items-center gap-3 text-gray-600 dark:text-gray-300"
               >
-                <i className="fas fa-cogs text-lg"></i>
-                <span className="hidden sm:inline">General</span>
+                <i className="fas fa-cogs text-xl drop-shadow-sm"></i>
+                <span className="hidden sm:inline font-bold tracking-wide">General</span>
+                <span className="sm:hidden font-bold">General</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="admin" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:transform data-[state=active]:scale-105 transition-all duration-300 font-medium rounded-lg px-4 py-3 flex items-center gap-2"
+                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-500 data-[state=active]:via-pink-500 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-2xl data-[state=active]:shadow-purple-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-purple-300 hover:bg-purple-50 hover:text-purple-700 hover:scale-102 transition-all duration-300 font-semibold rounded-xl px-6 py-4 flex items-center gap-3 text-gray-600 dark:text-gray-300"
               >
-                <i className="fas fa-user-shield text-lg"></i>
-                <span className="hidden sm:inline">Admin</span>
+                <i className="fas fa-user-shield text-xl drop-shadow-sm"></i>
+                <span className="hidden sm:inline font-bold tracking-wide">Admin</span>
+                <span className="sm:hidden font-bold">Admin</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="notifications" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:transform data-[state=active]:scale-105 transition-all duration-300 font-medium rounded-lg px-4 py-3 flex items-center gap-2"
+                className="relative z-10 data-[state=active]:bg-gradient-to-br data-[state=active]:from-orange-500 data-[state=active]:via-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-2xl data-[state=active]:shadow-orange-500/25 data-[state=active]:transform data-[state=active]:scale-105 data-[state=active]:border-2 data-[state=active]:border-orange-300 hover:bg-orange-50 hover:text-orange-700 hover:scale-102 transition-all duration-300 font-semibold rounded-xl px-6 py-4 flex items-center gap-3 text-gray-600 dark:text-gray-300"
               >
-                <i className="fas fa-bell text-lg"></i>
-                <span className="hidden sm:inline">Notifications</span>
-                <span className="sm:hidden">Bell</span>
+                <i className="fas fa-bell text-xl drop-shadow-sm"></i>
+                <span className="hidden sm:inline font-bold tracking-wide">Notifications</span>
+                <span className="sm:hidden font-bold">Alerts</span>
               </TabsTrigger>
             </TabsList>
 
