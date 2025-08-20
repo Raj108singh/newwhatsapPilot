@@ -462,7 +462,7 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Temporarily use MemStorage until database connectivity is resolved  
-// import { DatabaseStorage } from "./database-storage-mysql";
-// export const storage = new DatabaseStorage();
-export const storage = new MemStorage();
+// Use MySQL-compatible DatabaseStorage with VPS connection
+import { DatabaseStorage } from "./database-storage-mysql";
+export const storage = new DatabaseStorage();
+// export const storage = new MemStorage();
