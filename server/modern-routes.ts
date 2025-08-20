@@ -245,13 +245,18 @@ class EnhancedWhatsAppService {
   }
 
   // Build template components with proper structure for WhatsApp API
-  buildTemplateComponents(templateComponents: any[], parameters: any[] = []): any[] {
+  buildTemplateComponents(templateComponents: any[] | string, parameters: any[] = []): any[] {
     if (!templateComponents) return [];
+    
+    // Parse JSON string if needed
+    const parsedComponents = typeof templateComponents === 'string' 
+      ? JSON.parse(templateComponents) 
+      : templateComponents;
     
     const components: any[] = [];
     let paramIndex = 0;
     
-    templateComponents.forEach((component: any) => {
+    parsedComponents.forEach((component: any) => {
       if (component.type === "HEADER" && component.format === "TEXT" && component.text) {
         const headerMatches = component.text.match(/\{\{(\d+)\}\}/g);
         if (headerMatches && parameters.length > 0) {

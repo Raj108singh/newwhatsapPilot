@@ -26,10 +26,10 @@ WebSocket integration enables real-time messaging, including live chat message d
 ## External Dependencies
 
 ### WhatsApp Business API
-Integration with Facebook's WhatsApp Business API for sending and receiving messages, supporting text and template-based messages.
+Integration with Facebook's WhatsApp Business API for sending and receiving messages, supporting text and template-based messages. Successfully configured with credentials for phone number ID 636589589532430.
 
 ### Database Services
-MySQL database integration uses the `mysql2` driver with connection pooling. Configuration is via `DATABASE_URL` or individual MySQL environment variables, supporting cloud-hosted and self-hosted instances with SSL/TLS.
+Successfully connected to external VPS MySQL database at IP 103.38.50.233:3306. Uses `mysql2` driver with connection pooling. Database includes all required tables for users, messages, templates, campaigns, contacts, settings, conversations, and auto-reply rules.
 
 ### UI Component Libraries
 Relies on Radix UI primitives for accessible components, complemented by:
