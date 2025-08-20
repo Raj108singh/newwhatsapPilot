@@ -22,21 +22,24 @@ export default function Dashboard() {
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([]);
 
-  const { data: stats } = useQuery<Stats>({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<Stats>({
     queryKey: ["/api/stats"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   const { data: messages = [] } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
+    queryFn: () => apiRequest('/api/messages'),
   });
 
   const { data: templates = [] } = useQuery<Template[]>({
     queryKey: ["/api/templates"],
+    queryFn: () => apiRequest('/api/templates'),
   });
 
   const { data: campaigns = [] } = useQuery<Campaign[]>({
     queryKey: ["/api/campaigns"],
+    queryFn: () => apiRequest('/api/campaigns'),
   });
 
   // Load branding settings for header text
@@ -77,6 +80,16 @@ export default function Dashboard() {
   const recentTemplates = templates.slice(0, 3);
   const recentCampaigns = campaigns.slice(0, 3);
 
+  // Debug logging
+  console.log('Dashboard Data:', {
+    stats,
+    statsLoading,
+    statsError,
+    templates: templates.length,
+    messages: messages.length,
+    campaigns: campaigns.length
+  });
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
@@ -116,7 +129,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-slate-600">Messages Sent</p>
                   <p className="text-2xl font-bold text-slate-900" data-testid="stat-messages-sent">
-                    {stats?.messagesSent?.toLocaleString() || 0}
+                    {statsLoading ? '...' : stats?.messagesSent?.toLocaleString() || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -124,8 +137,14 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="mt-4 flex items-center text-sm">
-                <span className="text-green-600 font-medium">+12%</span>
-                <span className="text-slate-500 ml-1">from last month</span>
+                {statsError ? (
+                  <span className="text-red-600 font-medium">Error loading</span>
+                ) : (
+                  <>
+                    <span className="text-green-600 font-medium">+12%</span>
+                    <span className="text-slate-500 ml-1">from last month</span>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -136,7 +155,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-slate-600">Delivery Rate</p>
                   <p className="text-2xl font-bold text-slate-900" data-testid="stat-delivery-rate">
-                    {stats?.deliveryRate?.toFixed(1) || 0}%
+                    {statsLoading ? '...' : stats?.deliveryRate?.toFixed(1) || 0}%
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -156,7 +175,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-slate-600">Active Chats</p>
                   <p className="text-2xl font-bold text-slate-900" data-testid="stat-active-chats">
-                    {stats?.activeChats || 0}
+                    {statsLoading ? '...' : stats?.activeChats || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -176,7 +195,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-slate-600">Templates</p>
                   <p className="text-2xl font-bold text-slate-900" data-testid="stat-templates">
-                    {stats?.templates || 0}
+                    {statsLoading ? '...' : stats?.templates || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
