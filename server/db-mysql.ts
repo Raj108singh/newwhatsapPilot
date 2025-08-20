@@ -23,7 +23,7 @@ if (databaseUrl && databaseUrl.startsWith('mysql://')) {
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || '',
     database: process.env.MYSQL_DATABASE || 'whatsapp_pro',
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: false,
   };
 }
 
@@ -35,7 +35,7 @@ export const connection = mysql.createPool(
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        ssl: false,
       }
     : {
         ...connectionConfig,
