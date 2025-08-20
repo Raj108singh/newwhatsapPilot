@@ -198,11 +198,43 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                 <SelectValue placeholder="Choose a template..." />
               </SelectTrigger>
               <SelectContent>
-                {templates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name} ({template.category})
-                  </SelectItem>
-                ))}
+                {templates
+                  .sort((a, b) => {
+                    // Sort by language first, then by name
+                    if (a.language !== b.language) {
+                      return a.language.localeCompare(b.language);
+                    }
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((template) => {
+                    const languageNames: { [key: string]: string } = {
+                      'en': 'English',
+                      'hi': 'हिन्दी (Hindi)',
+                      'te': 'తెలుగు (Telugu)', 
+                      'mr': 'मराठी (Marathi)',
+                      'ta': 'தமிழ் (Tamil)',
+                      'kn': 'ಕನ್ನಡ (Kannada)',
+                      'gu': 'ગુજરાતી (Gujarati)',
+                      'bn': 'বাংলা (Bengali)',
+                      'or': 'ଓଡ଼ିଆ (Odia)',
+                      'pa': 'ਪੰਜਾਬੀ (Punjabi)',
+                      'as': 'অসমীয়া (Assamese)',
+                      'ml': 'മലയാളം (Malayalam)',
+                      'ur': 'اردو (Urdu)'
+                    };
+                    const languageName = languageNames[template.language] || template.language.toUpperCase();
+                    
+                    return (
+                      <SelectItem key={template.id} value={template.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{template.name}</span>
+                          <span className="text-xs text-slate-500">
+                            {languageName} • {template.category} • {template.status}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
               </SelectContent>
             </Select>
           </div>
@@ -247,8 +279,42 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
             <div>
               <Label>Template Preview</Label>
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
-                <div className="text-sm font-medium text-slate-700">
-                  <strong>Template:</strong> {selectedTemplate.name} ({selectedTemplate.category})
+                <div className="text-sm font-medium text-slate-700 flex items-center justify-between">
+                  <div>
+                    <strong>Template:</strong> {selectedTemplate.name}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                      {(() => {
+                        const languageNames: { [key: string]: string } = {
+                          'en': 'English',
+                          'hi': 'हिन्दी',
+                          'te': 'తెలుగు', 
+                          'mr': 'मराठी',
+                          'ta': 'தமிழ்',
+                          'kn': 'ಕನ್ನಡ',
+                          'gu': 'ગુજરાતી',
+                          'bn': 'বাংলা',
+                          'or': 'ଓଡ଼ିଆ',
+                          'pa': 'ਪੰਜਾਬੀ',
+                          'as': 'অসমীয়া',
+                          'ml': 'മലയാളം',
+                          'ur': 'اردو'
+                        };
+                        return languageNames[selectedTemplate.language] || selectedTemplate.language.toUpperCase();
+                      })()}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                      {selectedTemplate.category}
+                    </span>
+                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium capitalize ${
+                      selectedTemplate.status === 'approved' ? 'bg-green-100 text-green-800' :
+                      selectedTemplate.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {selectedTemplate.status}
+                    </span>
+                  </div>
                 </div>
                 
                 {selectedTemplate.components && Array.isArray(selectedTemplate.components) && (
