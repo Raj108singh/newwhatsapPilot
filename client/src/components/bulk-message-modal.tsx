@@ -18,6 +18,7 @@ interface BulkMessageModalProps {
 export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModalProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [recipients, setRecipients] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
   const [campaignName, setCampaignName] = useState<string>("");
   const [parameters, setParameters] = useState<string[]>([]);
   const { toast } = useToast();
@@ -62,6 +63,110 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
     setParameters([]);
   };
 
+  // Phone number normalization - handles with/without country codes
+  const normalizePhoneNumber = (phone: string): string => {
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    
+    // If it starts with 91 and has 12 digits total, add +
+    if (digits.length === 12 && digits.startsWith('91')) {
+      return '+' + digits;
+    }
+    
+    // If it has 10 digits, assume Indian number and add +91
+    if (digits.length === 10) {
+      return '+91' + digits;
+    }
+    
+    // If it already starts with + return as is
+    if (phone.startsWith('+')) {
+      return phone;
+    }
+    
+    // Otherwise add + if it looks like a valid international number
+    if (digits.length >= 10) {
+      return '+' + digits;
+    }
+    
+    return phone; // Return original if can't normalize
+  };
+
+  // CSV Upload Handler
+  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast({
+        title: "Invalid File",
+        description: "Please upload a CSV file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+      
+      // Parse CSV - handle both single column and multiple columns
+      const phoneNumbers: string[] = [];
+      
+      lines.forEach((line, index) => {
+        // Skip header row if it contains non-numeric data
+        if (index === 0 && isNaN(parseInt(line.split(',')[0].replace(/\D/g, '')))) {
+          return;
+        }
+        
+        // Split by comma and take first column as phone number
+        const columns = line.split(',');
+        const phone = columns[0].trim().replace(/['"]/g, ''); // Remove quotes
+        
+        if (phone) {
+          const normalized = normalizePhoneNumber(phone);
+          if (normalized !== phone || phone.match(/^\+?[1-9]\d{1,14}$/)) {
+            phoneNumbers.push(normalized);
+          }
+        }
+      });
+      
+      if (phoneNumbers.length === 0) {
+        toast({
+          title: "No Valid Numbers",
+          description: "No valid phone numbers found in the CSV file.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Add to existing recipients or replace
+      const existingNumbers = recipients.split('\n').filter(line => line.trim());
+      const allNumbers = [...existingNumbers, ...phoneNumbers];
+      
+      // Remove duplicates and set
+      const uniqueNumbers = Array.from(new Set(allNumbers));
+      setRecipients(uniqueNumbers.join('\n'));
+      
+      toast({
+        title: "CSV Uploaded Successfully",
+        description: `Added ${phoneNumbers.length} phone numbers. Total: ${uniqueNumbers.length} numbers.`,
+      });
+      
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to parse CSV file. Please check the format.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      // Reset file input
+      event.target.value = '';
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -76,7 +181,7 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
 
     const recipientsList = recipients
       .split("\n")
-      .map(line => line.trim())
+      .map(line => normalizePhoneNumber(line.trim()))
       .filter(line => line.length > 0);
 
     if (recipientsList.length === 0) {
@@ -244,15 +349,28 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
             <Label htmlFor="recipients">Recipients</Label>
             <div className="space-y-3">
               <div className="flex space-x-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  data-testid="button-upload-csv"
-                >
-                  <i className="fas fa-upload mr-2"></i>
-                  Upload CSV
-                </Button>
+                <label htmlFor="csv-upload">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    disabled={uploading}
+                    data-testid="button-upload-csv"
+                    asChild
+                  >
+                    <span>
+                      <i className={`fas ${uploading ? 'fa-spinner fa-spin' : 'fa-upload'} mr-2`}></i>
+                      {uploading ? 'Uploading...' : 'Upload CSV'}
+                    </span>
+                  </Button>
+                </label>
+                <input
+                  id="csv-upload"
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCsvUpload}
+                  className="hidden"
+                />
                 <Button 
                   type="button" 
                   variant="outline" 
@@ -267,7 +385,7 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                 id="recipients"
                 value={recipients}
                 onChange={(e) => setRecipients(e.target.value)}
-                placeholder="Enter phone numbers (one per line)&#10;+1234567890&#10;+1234567891&#10;+1234567892"
+                placeholder="Enter phone numbers (one per line)&#10;+91XXXXXXXXXX&#10;or XXXXXXXXXX&#10;919876543210"
                 rows={4}
                 data-testid="textarea-recipients"
               />
