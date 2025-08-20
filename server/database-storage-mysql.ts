@@ -404,7 +404,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setSetting(setting: InsertSetting): Promise<Setting> {
-    return await this.createOrUpdateSetting(setting.key, setting.value);
+    return await this.createOrUpdateSetting(setting.key, setting.value || "");
   }
 }
 
