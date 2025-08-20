@@ -20,7 +20,7 @@ export default function LoginPage() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const settingsData = await apiRequest("/api/settings");
+        const settingsData = await apiRequest("/api/login-settings");
         setSettings(settingsData);
       } catch (error) {
         console.error("Failed to load settings:", error);

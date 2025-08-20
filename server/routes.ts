@@ -1031,6 +1031,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Settings endpoint
+  // Public login page settings endpoint (no auth required)
+  app.get('/api/login-settings', async (req, res) => {
+    try {
+      // Get individual login page settings from database
+      const getSetting = async (key: string, defaultValue: string) => {
+        try {
+          const setting = await storage.getSetting(key);
+          return setting?.value as string || defaultValue;
+        } catch (error) {
+          return defaultValue;
+        }
+      };
+      
+      // Only return public login page settings
+      const loginSettings = {
+        login_logo: await getSetting('login_logo', ""),
+        login_title: await getSetting('login_title', "WhatsApp Pro"),
+        login_subtitle: await getSetting('login_subtitle', "Professional WhatsApp Business Management Platform"),
+        login_welcome_title: await getSetting('login_welcome_title', "Welcome Back"),
+        login_welcome_description: await getSetting('login_welcome_description', "Sign in to access your WhatsApp Business dashboard"),
+        login_feature_1_title: await getSetting('login_feature_1_title', "Automated Responses"),
+        login_feature_1_description: await getSetting('login_feature_1_description', "Smart chatbot with AI-powered auto-reply rules for instant customer support"),
+        login_feature_2_title: await getSetting('login_feature_2_title', "Bulk Messaging"),
+        login_feature_2_description: await getSetting('login_feature_2_description', "Send personalized messages to thousands of contacts with templates"),
+        login_feature_3_title: await getSetting('login_feature_3_title', "Secure & Reliable"),
+        login_feature_3_description: await getSetting('login_feature_3_description', "Enterprise-grade security with real-time message tracking and status updates")
+      };
+      
+      res.json(loginSettings);
+    } catch (error) {
+      console.error('Error fetching login settings:', error);
+      res.status(500).json({ error: 'Failed to load login settings' });
+    }
+  });
+
   app.get('/api/settings', async (req, res) => {
     try {
       // Get settings from database
