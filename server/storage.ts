@@ -69,8 +69,12 @@ export interface IStorage {
   getSettings(): Promise<Setting[]>;
   getSetting(key: string): Promise<Setting | undefined>;
   setSetting(setting: InsertSetting): Promise<Setting>;
-  updateSetting(key: string, value: any): Promise<Setting | undefined>;
-  deleteSetting(key: string): Promise<boolean>;
+  createOrUpdateSetting(key: string, value: string): Promise<Setting>;
+  updateSetting(id: string, value: string): Promise<Setting | undefined>;
+  deleteSetting(id: string): Promise<boolean>;
+  
+  // Additional methods needed
+  getContactByPhoneNumber(phoneNumber: string): Promise<Contact | undefined>;
 }
 
 export class MemStorage implements IStorage {

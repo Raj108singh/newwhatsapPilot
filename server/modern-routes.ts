@@ -554,12 +554,7 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
                         settingKey.startsWith('company_') ? 'branding' : 'general';
         const isEncrypted = settingKey.includes('token') || settingKey.includes('secret');
         
-        await storage.setSetting({
-          key: settingKey,
-          value: value as any,
-          category,
-          isEncrypted,
-        });
+        await storage.createOrUpdateSetting(settingKey, value as string);
       }
 
       res.json({ success: true, message: "Settings updated successfully" });

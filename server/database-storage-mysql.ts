@@ -78,7 +78,7 @@ export class DatabaseStorage implements IStorage {
       .update(userSessions)
       .set({ isActive: false })
       .where(eq(userSessions.token, token));
-    return result.affectedRows > 0;
+    return (result as any).affectedRows > 0;
   }
 
   async deleteUserSessions(userId: string): Promise<boolean> {
@@ -86,7 +86,7 @@ export class DatabaseStorage implements IStorage {
       .update(userSessions)
       .set({ isActive: false })
       .where(eq(userSessions.userId, userId));
-    return result.affectedRows > 0;
+    return (result as any).affectedRows > 0;
   }
 
   // Templates
@@ -125,7 +125,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTemplate(id: string): Promise<boolean> {
     const result = await db.delete(templates).where(eq(templates.id, id));
-    return result.affectedRows > 0;
+    return (result as any).affectedRows > 0;
   }
 
   // Messages
@@ -291,7 +291,7 @@ export class DatabaseStorage implements IStorage {
   async updateCampaign(id: string, campaignData: Partial<InsertCampaign>): Promise<Campaign | undefined> {
     await db
       .update(campaigns)
-      .set({ ...campaignData, updatedAt: new Date() })
+      .set(campaignData)
       .where(eq(campaigns.id, id));
     // Query the updated campaign
     const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
@@ -325,7 +325,7 @@ export class DatabaseStorage implements IStorage {
   async updateContact(id: string, contactData: Partial<InsertContact>): Promise<Contact | undefined> {
     await db
       .update(contacts)
-      .set({ ...contactData, updatedAt: new Date() })
+      .set(contactData)
       .where(eq(contacts.id, id));
     // Query the updated contact
     const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
@@ -334,7 +334,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteContact(id: string): Promise<boolean> {
     const result = await db.delete(contacts).where(eq(contacts.id, id));
-    return result.affectedRows > 0;
+    return (result as any).affectedRows > 0;
   }
 
   async getContactByPhoneNumber(phoneNumber: string): Promise<Contact | undefined> {
@@ -390,6 +390,21 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSetting(id: string): Promise<boolean> {
     const result = await db.delete(settings).where(eq(settings.id, id));
-    return result.affectedRows > 0;
+    return (result as any).affectedRows > 0;
+  }
+
+  // Missing methods implementation
+  async getAutoReplyRule(id: string): Promise<AutoReplyRule | undefined> {
+    const [rule] = await db.select().from(autoReplyRules).where(eq(autoReplyRules.id, id));
+    return rule;
+  }
+
+  async getActiveAutoReplyRules(): Promise<AutoReplyRule[]> {
+    return await db.select().from(autoReplyRules).where(eq(autoReplyRules.isActive, true)).orderBy(desc(autoReplyRules.createdAt));
+  }
+
+  async setSetting(setting: InsertSetting): Promise<Setting> {
+    return await this.createOrUpdateSetting(setting.key, setting.value);
   }
 }
+

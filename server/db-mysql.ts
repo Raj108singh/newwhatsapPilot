@@ -5,15 +5,13 @@ import * as schema from "@shared/schema";
 // Check if we have a MySQL database URL or create a default one for development
 let connectionConfig: any;
 
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql://')) {
-  // Update DATABASE_URL to use VPS IP and port 2031 instead of localhost:3306
-  let databaseUrl = process.env.DATABASE_URL;
-  if (process.env.VPS_IP_ADDRESS && databaseUrl.includes('@localhost:')) {
-    databaseUrl = databaseUrl.replace('@localhost:3306', `@${process.env.VPS_IP_ADDRESS}:3306`);
-    console.log(`✅ Updated DATABASE_URL to use VPS IP: ${process.env.VPS_IP_ADDRESS}:3306`);
-  }
+// Prefer VPS_DATABASE_URL if available, fallback to DATABASE_URL
+const databaseUrl = process.env.VPS_DATABASE_URL || process.env.DATABASE_URL;
+
+if (databaseUrl && databaseUrl.startsWith('mysql://')) {
   connectionConfig = databaseUrl;
   console.log('✅ Using MySQL DATABASE_URL for database connection');
+  console.log(`🔗 Connecting to: ${databaseUrl.replace(/\/\/.*:.*@/, '//***:***@')}`); // Log without credentials
 } else {
   // Default MySQL configuration for local development
   console.log('⚠️  No MySQL DATABASE_URL found. Using default local MySQL configuration.');
