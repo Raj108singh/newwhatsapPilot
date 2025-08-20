@@ -14,6 +14,8 @@ interface Stats {
   deliveryRate: number;
   activeChats: number;
   templates: number;
+  uniqueTemplates: number;
+  duplicateTemplates: number;
   contacts: number;
   campaigns: number;
 }
@@ -197,7 +199,10 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-slate-600">Templates</p>
                   <p className="text-2xl font-bold text-slate-900" data-testid="stat-templates">
-                    {statsLoading ? '...' : stats?.templates || 0}
+                    {statsLoading ? '...' : stats?.uniqueTemplates || 0}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {statsLoading ? '' : `${stats?.templates || 0} total`}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -205,8 +210,17 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="mt-4 flex items-center text-sm">
-                <span className="text-green-600 font-medium">3</span>
-                <span className="text-slate-500 ml-1">approved pending</span>
+                {stats?.duplicateTemplates && stats.duplicateTemplates > 0 ? (
+                  <>
+                    <span className="text-amber-600 font-medium">{stats.duplicateTemplates}</span>
+                    <span className="text-slate-500 ml-1">duplicates found</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-green-600 font-medium">✓</span>
+                    <span className="text-slate-500 ml-1">no duplicates</span>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

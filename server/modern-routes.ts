@@ -537,11 +537,19 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       const templates = await storage.getTemplates();
       const contacts = await storage.getContacts();
 
+      // Calculate unique template count
+      const uniqueTemplateNames = new Set(templates.map(t => t.name));
+      const totalTemplates = templates.length;
+      const uniqueTemplates = uniqueTemplateNames.size;
+      const duplicateTemplates = totalTemplates - uniqueTemplates;
+
       const stats = {
         messagesSent: messages.filter(m => m.direction === 'outbound').length,
         deliveryRate: 98.5, // This would be calculated from actual delivery statuses
         activeChats: new Set(messages.map(m => m.phoneNumber)).size,
-        templates: templates.length,
+        templates: totalTemplates,
+        uniqueTemplates: uniqueTemplates,
+        duplicateTemplates: duplicateTemplates,
         contacts: contacts.length,
         campaigns: campaigns.length,
       };
