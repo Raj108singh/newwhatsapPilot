@@ -24,6 +24,7 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<Stats>({
     queryKey: ["/api/stats"],
+    queryFn: () => apiRequest('/api/stats'),
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 

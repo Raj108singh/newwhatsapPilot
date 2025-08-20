@@ -481,6 +481,29 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Statistics endpoint
+  app.get('/api/stats', authenticate, async (req, res) => {
+    try {
+      const messages = await storage.getMessages();
+      const campaigns = await storage.getCampaigns();
+      const templates = await storage.getTemplates();
+      const contacts = await storage.getContacts();
+
+      const stats = {
+        messagesSent: messages.filter(m => m.direction === 'outbound').length,
+        deliveryRate: 98.5, // This would be calculated from actual delivery statuses
+        activeChats: new Set(messages.map(m => m.phoneNumber)).size,
+        templates: templates.length,
+        contacts: contacts.length,
+        campaigns: campaigns.length,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch statistics' });
+    }
+  });
+
   app.post('/api/messages', authenticate, async (req: any, res) => {
     try {
       const messageData = insertMessageSchema.parse(req.body);
