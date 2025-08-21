@@ -625,41 +625,66 @@ export class DatabaseStorage implements IStorage {
   }
 
   async removeGroupMember(groupId: string, contactId: string): Promise<boolean> {
-    console.log('🔗 Database removeGroupMember called with:', groupId, contactId);
+    console.log('🔗 Database removeGroupMember called with groupId:', groupId, 'contactId:', contactId);
+    console.log('🔗 Types - groupId:', typeof groupId, 'contactId:', typeof contactId);
+    
+    // Validate input parameters
+    if (!groupId || !contactId) {
+      console.log('🔗 Invalid parameters - groupId or contactId is empty');
+      return false;
+    }
+    
     try {
-      // First, list all members in this group to debug
+      // First, get all members in this group for debugging
+      console.log('🔗 Fetching all members in group...');
       const allMembers = await db
         .select()
         .from(groupMembers)
         .where(eq(groupMembers.groupId, groupId));
       
-      console.log('🔗 All members in group:', allMembers.map(m => ({ id: m.id, groupId: m.groupId, contactId: m.contactId })));
+      console.log('🔗 All members in group:', allMembers.length);
+      allMembers.forEach(member => {
+        console.log('🔗 Member:', { 
+          id: member.id, 
+          groupId: member.groupId, 
+          contactId: member.contactId,
+          addedBy: member.addedBy 
+        });
+      });
       
-      // Check if the member exists
+      // Check if the specific member exists
+      console.log('🔗 Looking for specific member...');
       const existingMember = await db
         .select()
         .from(groupMembers)
         .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.contactId, contactId)));
       
-      console.log('🔗 Existing member check:', existingMember.length, 'found');
-      console.log('🔗 Search criteria - groupId:', groupId, 'contactId:', contactId);
+      console.log('🔗 Specific member search result:', existingMember.length, 'found');
       
       if (existingMember.length === 0) {
-        console.log('🔗 Member not found in group');
+        console.log('🔗 Member with contactId', contactId, 'not found in group', groupId);
         return false;
       }
       
+      // Proceed with deletion
+      console.log('🔗 Attempting to delete member...');
       const result = await db
         .delete(groupMembers)
         .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.contactId, contactId)));
       
-      console.log('🔗 Delete result:', result);
+      console.log('🔗 Delete operation result:', result);
       const success = (result as any).affectedRows > 0;
-      console.log('🔗 Remove group member success:', success);
+      console.log('🔗 Member removal success:', success);
       return success;
+      
     } catch (error) {
       console.error('🔗 Database error in removeGroupMember:', error);
-      return false; // Return false when there's an error
+      console.error('🔗 Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        groupId,
+        contactId
+      });
+      return false;
     }
   }
 
