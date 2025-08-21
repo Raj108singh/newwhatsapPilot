@@ -321,8 +321,11 @@ export class DatabaseStorage implements IStorage {
               // Remove extra quotes and unescape if needed
               tagString = tagString.replace(/^"|"$/g, '').replace(/\\"/g, '"');
               parsedTags = JSON.parse(tagString);
-            } else {
+            } else if (Array.isArray(tagString)) {
               parsedTags = tagString;
+            } else {
+              parsedTags = [];
+              parsedTags = [];
             }
           }
         } catch (e) {
@@ -416,8 +419,11 @@ export class DatabaseStorage implements IStorage {
           // Remove extra quotes and unescape if needed
           tagString = tagString.replace(/^"|"$/g, '').replace(/\\"/g, '"');
           parsedTags = JSON.parse(tagString);
-        } else {
+        } else if (Array.isArray(tagString)) {
           parsedTags = tagString;
+        } else {
+          parsedTags = [];
+          parsedTags = [];
         }
       }
     } catch (e) {
@@ -503,6 +509,24 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async updateGroup(id: string, groupData: Partial<InsertGroup>): Promise<Group | undefined> {
+    console.log('🔗 Database updateGroup called with:', id, groupData);
+    try {
+      await db
+        .update(groups)
+        .set({ ...groupData, updatedAt: new Date() })
+        .where(eq(groups.id, id));
+      
+      // Query the updated group
+      const [group] = await db.select().from(groups).where(eq(groups.id, id));
+      console.log('🔗 Updated group:', group);
+      return group;
+    } catch (error) {
+      console.error('🔗 Database error in updateGroup:', error);
+      return undefined;
+    }
+  }
+
   async deleteGroup(id: string): Promise<boolean> {
     console.log('🔗 Database deleteGroup called with ID:', id);
     try {
@@ -545,8 +569,11 @@ export class DatabaseStorage implements IStorage {
             if (typeof tagString === 'string') {
               tagString = tagString.replace(/^"|"$/g, '').replace(/\\"/g, '"');
               parsedTags = JSON.parse(tagString);
-            } else {
+            } else if (Array.isArray(tagString)) {
               parsedTags = tagString;
+            } else {
+              parsedTags = [];
+              parsedTags = [];
             }
           }
         } catch (e) {

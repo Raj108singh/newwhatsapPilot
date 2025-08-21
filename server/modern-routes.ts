@@ -1351,6 +1351,22 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/groups/:id', authenticate, async (req: any, res) => {
+    try {
+      console.log('👥 PUT /api/groups/:id - Group ID:', req.params.id, 'Data:', req.body);
+      const updatedGroup = await storage.updateGroup(req.params.id, req.body);
+      if (updatedGroup) {
+        console.log('👥 PUT /api/groups/:id - Group updated successfully');
+        res.json(updatedGroup);
+      } else {
+        res.status(404).json({ error: 'Group not found' });
+      }
+    } catch (error) {
+      console.error('❌ PUT /api/groups/:id error:', error);
+      res.status(500).json({ error: 'Failed to update group' });
+    }
+  });
+
   app.get('/api/groups/:id/members', authenticate, async (req, res) => {
     try {
       console.log('👥 GET /api/groups/:id/members - Group ID:', req.params.id);
