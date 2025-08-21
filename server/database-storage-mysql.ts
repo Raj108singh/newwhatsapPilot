@@ -547,6 +547,10 @@ export class DatabaseStorage implements IStorage {
   async getGroupMembers(groupId: string): Promise<Contact[]> {
     console.log('🔗 Database getGroupMembers called with groupId:', groupId);
     try {
+      // First check what's actually in the group_members table
+      const rawMembers = await db.execute(sql`SELECT * FROM group_members WHERE group_id = ${groupId}`);
+      console.log('🔗 Raw group members data:', JSON.stringify(rawMembers, null, 2));
+      
       const result = await db
         .select({
           id: contacts.id,
@@ -560,6 +564,8 @@ export class DatabaseStorage implements IStorage {
         .innerJoin(contacts, eq(groupMembers.contactId, contacts.id))
         .where(eq(groupMembers.groupId, groupId));
       
+      console.log('🔗 Joined query result before parsing:', JSON.stringify(result, null, 2));
+      
       // Parse tags for each contact
       const parsedResult = result.map(contact => {
         let parsedTags = [];
@@ -572,7 +578,6 @@ export class DatabaseStorage implements IStorage {
             } else if (Array.isArray(tagString)) {
               parsedTags = tagString;
             } else {
-              parsedTags = [];
               parsedTags = [];
             }
           }
@@ -626,7 +631,6 @@ export class DatabaseStorage implements IStorage {
 
   async removeGroupMember(groupId: string, contactId: string): Promise<boolean> {
     console.log('🔗 Database removeGroupMember called with groupId:', groupId, 'contactId:', contactId);
-    console.log('🔗 Types - groupId:', typeof groupId, 'contactId:', typeof contactId);
     
     // Validate input parameters
     if (!groupId || !contactId) {
@@ -635,55 +639,31 @@ export class DatabaseStorage implements IStorage {
     }
     
     try {
-      // First, get all members in this group for debugging
-      console.log('🔗 Fetching all members in group...');
-      const allMembers = await db
-        .select()
-        .from(groupMembers)
-        .where(eq(groupMembers.groupId, groupId));
+      // Use raw SQL to debug the actual data
+      console.log('🔗 Checking group_members table with raw SQL...');
+      const rawQuery = `SELECT * FROM group_members WHERE group_id = '${groupId}'`;
+      console.log('🔗 Executing query:', rawQuery);
       
-      console.log('🔗 All members in group:', allMembers.length);
-      allMembers.forEach(member => {
-        console.log('🔗 Member:', { 
-          id: member.id, 
-          groupId: member.groupId, 
-          contactId: member.contactId,
-          addedBy: member.addedBy 
-        });
-      });
+      const allMembers = await db.execute(sql`SELECT * FROM group_members WHERE group_id = ${groupId}`);
+      console.log('🔗 Raw query result:', JSON.stringify(allMembers, null, 2));
       
-      // Check if the specific member exists
-      console.log('🔗 Looking for specific member...');
-      const existingMember = await db
-        .select()
-        .from(groupMembers)
-        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.contactId, contactId)));
+      // Check if the specific member exists using raw SQL
+      const specificMember = await db.execute(sql`SELECT * FROM group_members WHERE group_id = ${groupId} AND contact_id = ${contactId}`);
+      console.log('🔗 Specific member query result:', JSON.stringify(specificMember, null, 2));
       
-      console.log('🔗 Specific member search result:', existingMember.length, 'found');
-      
-      if (existingMember.length === 0) {
-        console.log('🔗 Member with contactId', contactId, 'not found in group', groupId);
+      if (specificMember.length === 0) {
+        console.log('🔗 Member not found in database');
         return false;
       }
       
-      // Proceed with deletion
-      console.log('🔗 Attempting to delete member...');
-      const result = await db
-        .delete(groupMembers)
-        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.contactId, contactId)));
+      // Try deletion with raw SQL
+      const deleteResult = await db.execute(sql`DELETE FROM group_members WHERE group_id = ${groupId} AND contact_id = ${contactId}`);
+      console.log('🔗 Delete result:', JSON.stringify(deleteResult, null, 2));
       
-      console.log('🔗 Delete operation result:', result);
-      const success = (result as any).affectedRows > 0;
-      console.log('🔗 Member removal success:', success);
-      return success;
+      return (deleteResult as any).affectedRows > 0;
       
     } catch (error) {
       console.error('🔗 Database error in removeGroupMember:', error);
-      console.error('🔗 Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        groupId,
-        contactId
-      });
       return false;
     }
   }
