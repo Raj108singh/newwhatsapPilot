@@ -551,6 +551,11 @@ export class DatabaseStorage implements IStorage {
       const rawMembers = await db.execute(sql`SELECT * FROM group_members WHERE group_id = ${groupId}`);
       console.log('🔗 Raw group members data:', JSON.stringify(rawMembers, null, 2));
       
+      if (rawMembers.length === 0) {
+        console.log('🔗 No members found in group_members table for group:', groupId);
+        return [];
+      }
+      
       const result = await db
         .select({
           id: contacts.id,
@@ -592,7 +597,8 @@ export class DatabaseStorage implements IStorage {
         };
       });
       
-      console.log('🔗 Database getGroupMembers result:', parsedResult.length, 'members found');
+      console.log('🔗 Database getGroupMembers final result:', parsedResult.length, 'members found');
+      console.log('🔗 Returning members:', parsedResult.map(m => ({ id: m.id, name: m.name, phoneNumber: m.phoneNumber })));
       return parsedResult;
     } catch (error) {
       console.error('🔗 Database error in getGroupMembers:', error);
