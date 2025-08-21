@@ -735,7 +735,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveAutoReplyRules(): Promise<AutoReplyRule[]> {
-    return await db.select().from(autoReplyRules).where(eq(autoReplyRules.isActive, true)).orderBy(desc(autoReplyRules.createdAt));
+    return await db.select().from(autoReplyRules).where(eq(autoReplyRules.isActive, true)).orderBy(desc(autoReplyRules.priority));
   }
 
   async setSetting(setting: InsertSetting): Promise<Setting> {
