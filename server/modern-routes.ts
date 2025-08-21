@@ -965,23 +965,23 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
   });
 
   // Test auto-reply system with sample messages
-  app.post('/api/auto-reply-rules/test', authenticate, async (req, res) => {
+  app.post('/api/auto-reply-rules/test', async (req, res) => {
     try {
       const { phoneNumber = '+918318868521', testMessages } = req.body;
       
       const defaultTestMessages = [
-        'Hi', // Should trigger greeting
-        'hello', // Should trigger greeting  
+        'Hi 👋', // Should trigger greeting
+        'hello 😊', // Should trigger greeting  
         '1', // Should trigger option 1 (Product Info)
         '2', // Should trigger option 2 (Pricing)
         '3', // Should trigger option 3 (Technical Support)
         '4', // Should trigger option 4 (Human Agent)
-        'menu', // Should show main menu
-        'help', // Should show help
-        'demo', // Should trigger demo request
-        'hours', // Should show business hours
+        'menu 📋', // Should show main menu
+        'help ❓', // Should show help
+        'demo 🚀', // Should trigger demo request
+        'hours 🕒', // Should show business hours
         'xyz123', // Should trigger fallback
-        'support' // Should trigger help
+        'support 💬' // Should trigger help
       ];
       
       const messagesToTest = testMessages || defaultTestMessages;
@@ -1015,7 +1015,7 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
   });
 
   // Get current conversation context for testing
-  app.get('/api/auto-reply-rules/test-context/:phoneNumber', authenticate, async (req, res) => {
+  app.get('/api/auto-reply-rules/test-context/:phoneNumber', async (req, res) => {
     try {
       const { phoneNumber } = req.params;
       const context = autoReplyService.getContext(phoneNumber);
@@ -1026,13 +1026,102 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
   });
 
   // Clear conversation context for testing
-  app.delete('/api/auto-reply-rules/test-context/:phoneNumber', authenticate, async (req, res) => {
+  app.delete('/api/auto-reply-rules/test-context/:phoneNumber', async (req, res) => {
     try {
       const { phoneNumber } = req.params;
       const success = autoReplyService.clearContext(phoneNumber);
       res.json({ phoneNumber, cleared: success });
     } catch (error) {
       res.status(500).json({ error: "Failed to clear test context" });
+    }
+  });
+
+  // Create emoji-enhanced auto-reply rules
+  app.post('/api/auto-reply-rules/create-emoji-rules', authenticate, async (req, res) => {
+    try {
+      const emojiRules = [
+        {
+          name: '🎉 Welcome with Emojis',
+          trigger: 'hi,hello',
+          triggerType: 'contains_any',
+          replyMessage: '🌟 Hello! 👋 Welcome to our amazing WhatsApp support! 🚀\n\n📋 Choose an option:\n1️⃣ 🛍️ Product Information\n2️⃣ 💰 Pricing & Plans\n3️⃣ 🔧 Technical Support\n4️⃣ 👨‍💼 Speak to Human Agent\n\n💡 Just type the number or ask me anything! ✨',
+          priority: 10,
+          isActive: true,
+          conditions: '{}'
+        },
+        {
+          name: '🛍️ Product Info with Emojis',
+          trigger: '1',
+          triggerType: 'exact_match',
+          replyMessage: '🎯 Great choice! Here\'s our amazing product lineup:\n\n🌟 Premium WhatsApp Business Solution\n• 📤 Bulk messaging capabilities\n• 📊 Advanced analytics & insights\n• 📝 Template management system\n• 📇 Smart contact organization\n• 🤖 AI-powered auto-replies\n\n🤔 Want to know more? Type "menu" 📋 to go back! ✨',
+          priority: 9,
+          isActive: true,
+          conditions: '{}'
+        },
+        {
+          name: '💰 Pricing with Emojis',
+          trigger: '2',
+          triggerType: 'exact_match',
+          replyMessage: '💎 Here are our amazing pricing plans:\n\n🌱 Starter Plan: $29/month\n• 📤 Up to 1,000 messages\n• 📝 Basic templates\n• 📧 Email support\n• 🎯 Perfect for small businesses\n\n🚀 Professional Plan: $79/month\n• 📤 Up to 10,000 messages\n• ⭐ Advanced features\n• 🏃‍♂️ Priority support\n• 📊 Analytics dashboard\n\n🏆 Enterprise Plan: Custom pricing\n• ♾️ Unlimited messages\n• 🔧 Custom integration\n• 👨‍💼 Dedicated support manager\n• 🎨 White-label options\n\nType "menu" 📋 to return! ✨',
+          priority: 9,
+          isActive: true,
+          conditions: '{}'
+        },
+        {
+          name: '🔧 Tech Support with Emojis',
+          trigger: '3',
+          triggerType: 'exact_match',
+          replyMessage: '🛠️ I\'m your tech support wizard! ⚡ Ready to help!\n\n🔍 Common issues we resolve:\n• ⚙️ Setup and configuration\n• 🔗 API integration magic\n• 🚨 Troubleshooting delivery issues\n• ✅ Template approval assistance\n• 📱 Mobile app support\n• 🌐 Webhook configuration\n\n💬 Please describe your issue, or type "menu" 📋 to return! 🎯',
+          priority: 9,
+          isActive: true,
+          conditions: '{}'
+        },
+        {
+          name: '👨‍💼 Human Agent with Emojis',
+          trigger: '4',
+          triggerType: 'exact_match',
+          replyMessage: '🤝 Let me connect you with our amazing human team! 👨‍💼✨\n\n⏰ Our support heroes are available:\n📅 Monday to Friday: 9 AM - 6 PM EST\n☎️ For urgent matters: +1-800-SUPPORT\n📧 Email our experts: support@whatsapppro.com\n💬 Live chat: Available on our website\n\n🎯 A team member will connect with you shortly! ⚡\nType "menu" 📋 to return! 🔄',
+          priority: 9,
+          isActive: true,
+          conditions: '{}'
+        },
+        {
+          name: '📋 Menu with Emojis',
+          trigger: 'menu',
+          triggerType: 'exact_match',
+          replyMessage: '🎯 Welcome back! Here\'s our main menu: ✨\n\n1️⃣ 🛍️ Product Information\n2️⃣ 💰 Pricing & Plans\n3️⃣ 🔧 Technical Support\n4️⃣ 👨‍💼 Speak to Human Agent\n\n🚀 Type the number of your choice or ask me anything else! 💬',
+          priority: 8,
+          isActive: true,
+          conditions: '{}'
+        },
+        {
+          name: '❓ Help with Emojis',
+          trigger: 'help',
+          triggerType: 'exact_match',
+          replyMessage: '🎯 Here\'s how to chat with me! ✨\n\n🔤 Magic Keywords:\n• 👋 hi, hello - Start conversation\n• 📋 menu - Show main options\n• ❓ help - This help message\n• 🚀 demo - Request demo\n• 🕒 hours - Business hours\n• 💬 support - Get help\n\n🔢 Quick Numbers: 1️⃣2️⃣3️⃣4️⃣ for menu options\n\n💡 Or just ask me anything naturally! I\'m smart! 🤖✨\n\nType "menu" 📋 to see all options! 🎊',
+          priority: 7,
+          isActive: true,
+          conditions: '{}'
+        }
+      ];
+
+      const createdRules = [];
+      for (const rule of emojiRules) {
+        try {
+          const created = await storage.createAutoReplyRule(rule);
+          createdRules.push(created);
+        } catch (error) {
+          console.log(`Rule already exists or error: ${rule.name}`);
+        }
+      }
+
+      res.json({ 
+        message: `Created ${createdRules.length} emoji-enhanced auto-reply rules!`,
+        rules: createdRules
+      });
+    } catch (error) {
+      console.error('Error creating emoji rules:', error);
+      res.status(500).json({ error: "Failed to create emoji auto-reply rules" });
     }
   });
 

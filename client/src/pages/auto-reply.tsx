@@ -25,7 +25,7 @@ export default function AutoReplyPage() {
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ["/api/auto-reply-rules"],
-  });
+  }) as { data: AutoReplyRule[], isLoading: boolean };
 
   const form = useForm<InsertAutoReplyRule>({
     resolver: zodResolver(insertAutoReplyRuleSchema),
@@ -87,20 +87,25 @@ export default function AutoReplyPage() {
     },
   });
 
-  const onSubmit = (data: InsertAutoReplyRule) => {
-    if (editingRule) {
-      updateMutation.mutate({ id: editingRule.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
+  const createEmojiRules = useMutation({
+    mutationFn: () => apiRequest("/api/auto-reply-rules/create-emoji-rules", {
+      method: "POST",
+    }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auto-reply-rules"] });
+      toast({ title: `🎉 ${data.message}`, description: "Your auto-reply rules now include emojis!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to create emoji rules", variant: "destructive" });
+    },
+  });
 
   const handleEdit = (rule: AutoReplyRule) => {
     setEditingRule(rule);
     form.reset({
       name: rule.name,
       trigger: rule.trigger,
-      triggerType: rule.triggerType as any,
+      triggerType: rule.triggerType,
       replyMessage: rule.replyMessage,
       isActive: rule.isActive,
       priority: rule.priority,
@@ -111,6 +116,14 @@ export default function AutoReplyPage() {
   const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this auto-reply rule?")) {
       deleteMutation.mutate(id);
+    }
+  };
+
+  const onSubmit = (data: InsertAutoReplyRule) => {
+    if (editingRule) {
+      updateMutation.mutate({ id: editingRule.id, data });
+    } else {
+      createMutation.mutate(data);
     }
   };
 
@@ -145,195 +158,208 @@ export default function AutoReplyPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Auto Reply Rules</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Auto Reply Rules 🤖</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Create intelligent chatbot responses for common customer inquiries
+            Create intelligent chatbot responses with emoji support for customer inquiries
           </p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              onClick={() => {
-                setEditingRule(null);
-                form.reset();
-              }}
-              className="bg-green-600 hover:bg-green-700"
-              data-testid="button-create-rule"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Rule
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => createEmojiRules.mutate()}
+            disabled={createEmojiRules.isPending}
+            variant="outline"
+            className="bg-yellow-50 hover:bg-yellow-100 border-yellow-200 text-yellow-800"
+            data-testid="button-create-emoji-rules"
+          >
+            {createEmojiRules.isPending ? 'Adding...' : '🎉 Add Emoji Rules'}
+          </Button>
           
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingRule ? "Edit Auto Reply Rule" : "Create Auto Reply Rule"}
-              </DialogTitle>
-            </DialogHeader>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Rule Name</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="e.g., Welcome Greeting, Support Hours"
-                          data-testid="input-rule-name"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                onClick={() => {
+                  setEditingRule(null);
+                  form.reset();
+                }}
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="button-create-rule"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Rule
+              </Button>
+            </DialogTrigger>
+          
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingRule ? "Edit Auto Reply Rule 📝" : "Create Auto Reply Rule ✨"}
+                </DialogTitle>
+              </DialogHeader>
+              
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="triggerType"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Trigger Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-trigger-type">
-                              <SelectValue placeholder="Select trigger type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="keyword">Keyword</SelectItem>
-                            <SelectItem value="greeting">Greeting</SelectItem>
-                            <SelectItem value="default">Default</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          How this rule should be triggered
-                        </FormDescription>
+                        <FormLabel>Rule Name</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., 🎉 Welcome Greeting, 💰 Pricing Info, 🛠️ Support"
+                            data-testid="input-rule-name"
+                            {...field} 
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="triggerType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Trigger Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-trigger-type">
+                                <SelectValue placeholder="Select trigger type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="keyword">🔤 Keyword</SelectItem>
+                              <SelectItem value="exact_match">🎯 Exact Match</SelectItem>
+                              <SelectItem value="contains_any">📝 Contains Any</SelectItem>
+                              <SelectItem value="starts_with">▶️ Starts With</SelectItem>
+                              <SelectItem value="greeting">👋 Greeting</SelectItem>
+                              <SelectItem value="numeric">🔢 Numeric</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Priority</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min="1" 
+                              max="10"
+                              placeholder="1-10 (higher = more priority)"
+                              data-testid="input-priority"
+                              {...field} 
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Higher priority rules are processed first
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <FormField
                     control={form.control}
-                    name="priority"
+                    name="trigger"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Priority</FormLabel>
+                        <FormLabel>Trigger Text</FormLabel>
                         <FormControl>
                           <Input 
-                            type="number" 
-                            min="1" 
-                            max="10"
-                            data-testid="input-priority"
+                            placeholder="e.g., hello 👋, help ❓, support 💬, pricing 💰"
+                            data-testid="input-trigger"
                             {...field} 
-                            onChange={e => field.onChange(parseInt(e.target.value))}
                           />
                         </FormControl>
                         <FormDescription>
-                          Higher numbers = higher priority
+                          Keywords or phrases with emojis that will trigger this response
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <FormField
-                  control={form.control}
-                  name="trigger"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Trigger Text</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="e.g., hello, help, support, pricing"
-                          data-testid="input-trigger"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Keywords or phrases that will trigger this response
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="replyMessage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reply Message</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Hello! Thanks for contacting us. How can we help you today?"
-                          rows={4}
-                          data-testid="textarea-reply-message"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        The automatic response that will be sent
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
+                  <FormField
+                    control={form.control}
+                    name="replyMessage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reply Message</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Hello! 👋 Thanks for contacting us. How can we help you today? 😊&#10;&#10;Choose an option:&#10;1️⃣ Product Info 📦&#10;2️⃣ Pricing 💰&#10;3️⃣ Support 🛠️"
+                            rows={6}
+                            data-testid="textarea-reply-message"
+                            {...field} 
+                          />
+                        </FormControl>
                         <FormDescription>
-                          Enable this auto-reply rule
+                          The automatic response with emojis that will be sent
                         </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="switch-is-active"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsDialogOpen(false);
-                      setEditingRule(null);
-                      form.reset();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                    data-testid="button-save-rule"
-                  >
-                    {editingRule ? "Update Rule" : "Create Rule"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+                  <FormField
+                    control={form.control}
+                    name="isActive"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>✅ Active</FormLabel>
+                          <FormDescription>
+                            Enable this auto-reply rule
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-is-active"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsDialogOpen(false);
+                        setEditingRule(null);
+                        form.reset();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                      data-testid="button-save-rule"
+                    >
+                      {editingRule ? "Update Rule 📝" : "Create Rule ✨"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Rules Grid */}
@@ -343,7 +369,7 @@ export default function AutoReplyPage() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {rules.map((rule: AutoReplyRule) => (
+          {(rules as AutoReplyRule[]).map((rule: AutoReplyRule) => (
             <Card key={rule.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -375,7 +401,6 @@ export default function AutoReplyPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(rule.id)}
-                      className="text-red-600 hover:text-red-800"
                       data-testid={`button-delete-${rule.id}`}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -383,8 +408,7 @@ export default function AutoReplyPage() {
                   </div>
                 </div>
               </CardHeader>
-              
-              <CardContent className="space-y-3">
+              <CardContent className="pt-0 space-y-3">
                 <div>
                   <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Trigger:
@@ -409,16 +433,16 @@ export default function AutoReplyPage() {
           {rules.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
               <Bot className="w-12 h-12 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Auto Reply Rules</h3>
+              <h3 className="text-lg font-medium mb-2">No Auto Reply Rules 🤖</h3>
               <p className="text-center mb-4">
-                Create your first auto-reply rule to start automating customer responses
+                Create your first auto-reply rule with emoji support to start automating customer responses
               </p>
               <Button
                 onClick={() => setIsDialogOpen(true)}
                 variant="outline"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Create First Rule
+                Create First Rule ✨
               </Button>
             </div>
           )}

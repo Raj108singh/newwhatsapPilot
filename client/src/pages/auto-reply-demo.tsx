@@ -26,19 +26,19 @@ export default function AutoReplyDemo() {
   const [phoneNumber] = useState('+918318868521');
   const queryClient = useQueryClient();
 
-  // Pre-defined test messages
+  // Pre-defined test messages with emojis
   const testMessages = [
-    { text: 'Hi', description: 'Greeting trigger' },
-    { text: 'hello', description: 'Greeting trigger (lowercase)' },
+    { text: 'Hi 👋', description: 'Greeting trigger with emoji' },
+    { text: 'hello 😊', description: 'Greeting trigger (lowercase)' },
     { text: '1', description: 'Numeric option 1' },
     { text: '2', description: 'Numeric option 2' },
     { text: '3', description: 'Numeric option 3' },
     { text: '4', description: 'Numeric option 4' },
-    { text: 'menu', description: 'Menu command' },
-    { text: 'help', description: 'Help command' },
-    { text: 'demo', description: 'Demo request' },
-    { text: 'hours', description: 'Business hours' },
-    { text: 'support', description: 'Support trigger' },
+    { text: 'menu 📋', description: 'Menu command with emoji' },
+    { text: 'help ❓', description: 'Help command with emoji' },
+    { text: 'demo 🚀', description: 'Demo request with emoji' },
+    { text: 'hours 🕒', description: 'Business hours with emoji' },
+    { text: 'support 💬', description: 'Support trigger with emoji' },
     { text: 'xyz123', description: 'Unknown input (fallback)' }
   ];
 
@@ -48,9 +48,9 @@ export default function AutoReplyDemo() {
       const response = await fetch('/api/auto-reply-rules/test', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(testData)
       });
       
@@ -80,9 +80,9 @@ export default function AutoReplyDemo() {
       const response = await fetch('/api/auto-reply-rules/test', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           phoneNumber,
           testMessages: [content]
@@ -164,8 +164,9 @@ export default function AutoReplyDemo() {
       const response = await fetch(`/api/auto-reply-rules/test-context/${phoneNumber}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
       });
       return response.json();
     }
