@@ -1322,5 +1322,101 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Groups API
+  app.get('/api/groups', authenticate, async (req, res) => {
+    try {
+      console.log('👥 GET /api/groups - Fetching groups');
+      const groups = await storage.getGroups();
+      console.log('👥 GET /api/groups - Found groups:', groups.length);
+      res.json(groups);
+    } catch (error) {
+      console.error('❌ GET /api/groups error:', error);
+      res.status(500).json({ error: 'Failed to fetch groups' });
+    }
+  });
+
+  app.post('/api/groups', authenticate, async (req: any, res) => {
+    try {
+      console.log('👥 POST /api/groups - Request body:', req.body);
+      const groupData = {
+        ...req.body,
+        createdBy: req.user.id,
+      };
+      const group = await storage.createGroup(groupData);
+      console.log('👥 POST /api/groups - Created group:', group);
+      res.json(group);
+    } catch (error) {
+      console.error('❌ POST /api/groups error:', error);
+      res.status(500).json({ error: 'Failed to create group' });
+    }
+  });
+
+  app.get('/api/groups/:id/members', authenticate, async (req, res) => {
+    try {
+      console.log('👥 GET /api/groups/:id/members - Group ID:', req.params.id);
+      const members = await storage.getGroupMembers(req.params.id);
+      console.log('👥 GET /api/groups/:id/members - Found members:', members.length);
+      res.json(members);
+    } catch (error) {
+      console.error('❌ GET /api/groups/:id/members error:', error);
+      res.status(500).json({ error: 'Failed to fetch group members' });
+    }
+  });
+
+  app.post('/api/groups/:id/members', authenticate, async (req: any, res) => {
+    try {
+      console.log('👥 POST /api/groups/:id/members - Group ID:', req.params.id, 'Body:', req.body);
+      const { contactIds } = req.body;
+      const results = [];
+      
+      for (const contactId of contactIds) {
+        const member = await storage.addGroupMember({
+          groupId: req.params.id,
+          contactId,
+          addedBy: req.user.id,
+        });
+        results.push(member);
+      }
+      
+      console.log('👥 POST /api/groups/:id/members - Added members:', results.length);
+      res.json(results);
+    } catch (error) {
+      console.error('❌ POST /api/groups/:id/members error:', error);
+      res.status(500).json({ error: 'Failed to add group members' });
+    }
+  });
+
+  app.delete('/api/groups/:groupId/members/:contactId', authenticate, async (req, res) => {
+    try {
+      console.log('👥 DELETE /api/groups/:groupId/members/:contactId - Group ID:', req.params.groupId, 'Contact ID:', req.params.contactId);
+      const success = await storage.removeGroupMember(req.params.groupId, req.params.contactId);
+      if (success) {
+        console.log('👥 DELETE /api/groups/:groupId/members/:contactId - Member removed successfully');
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: 'Member not found in group' });
+      }
+    } catch (error) {
+      console.error('❌ DELETE /api/groups/:groupId/members/:contactId error:', error);
+      res.status(500).json({ error: 'Failed to remove group member' });
+    }
+  });
+
+  app.delete('/api/groups/:id', authenticate, async (req, res) => {
+    try {
+      console.log('👥 DELETE /api/groups/:id - Group ID:', req.params.id);
+      const success = await storage.deleteGroup(req.params.id);
+      if (success) {
+        console.log('👥 DELETE /api/groups/:id - Group deleted successfully');
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: 'Group not found' });
+      }
+    } catch (error) {
+      console.error('❌ DELETE /api/groups/:id error:', error);
+      res.status(500).json({ error: 'Failed to delete group' });
+    }
+  });
+
   return httpServer;
 }

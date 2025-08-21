@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Group, Contact } from "@shared/schema";
@@ -21,7 +23,9 @@ type GroupFormData = z.infer<typeof groupFormSchema>;
 
 export default function Groups() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [manageModalOpen, setManageModalOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const { toast } = useToast();
 
   // Get all groups
@@ -36,8 +40,8 @@ export default function Groups() {
 
   // Get group members for selected group
   const { data: groupMembers = [] } = useQuery<Contact[]>({
-    queryKey: ["/api/groups", selectedGroupId, "members"],
-    enabled: !!selectedGroupId,
+    queryKey: ["/api/groups", selectedGroup?.id, "members"],
+    enabled: !!selectedGroup?.id,
   });
 
   const form = useForm<GroupFormData>({
@@ -77,6 +81,116 @@ export default function Groups() {
   const onSubmit = (data: GroupFormData) => {
     createGroupMutation.mutate(data);
   };
+
+  const addMembersMutation = useMutation({
+    mutationFn: async ({ groupId, contactIds }: { groupId: string; contactIds: string[] }) => {
+      const response = await apiRequest(`/api/groups/${groupId}/members`, {
+        method: "POST",
+        body: JSON.stringify({ contactIds }),
+      });
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Members Added",
+        description: "Contacts have been added to the group successfully.",
+      });
+      setSelectedContacts([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", selectedGroup?.id, "members"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Add Members",
+        description: error.message || "An error occurred while adding members.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: async ({ groupId, contactId }: { groupId: string; contactId: string }) => {
+      const response = await apiRequest(`/api/groups/${groupId}/members/${contactId}`, {
+        method: "DELETE",
+      });
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Member Removed",
+        description: "Contact has been removed from the group.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", selectedGroup?.id, "members"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Remove Member",
+        description: error.message || "An error occurred while removing the member.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (groupId: string) => {
+      const response = await apiRequest(`/api/groups/${groupId}`, {
+        method: "DELETE",
+      });
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Group Deleted",
+        description: "The group has been deleted successfully.",
+      });
+      setManageModalOpen(false);
+      setSelectedGroup(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Delete Group",
+        description: error.message || "An error occurred while deleting the group.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleManageGroup = (group: Group) => {
+    setSelectedGroup(group);
+    setManageModalOpen(true);
+    setSelectedContacts([]);
+  };
+
+  const handleAddSelectedMembers = () => {
+    if (selectedGroup && selectedContacts.length > 0) {
+      addMembersMutation.mutate({
+        groupId: selectedGroup.id,
+        contactIds: selectedContacts,
+      });
+    }
+  };
+
+  const handleRemoveMember = (contactId: string) => {
+    if (selectedGroup) {
+      removeMemberMutation.mutate({
+        groupId: selectedGroup.id,
+        contactId,
+      });
+    }
+  };
+
+  const handleToggleContact = (contactId: string) => {
+    setSelectedContacts(prev => 
+      prev.includes(contactId)
+        ? prev.filter(id => id !== contactId)
+        : [...prev, contactId]
+    );
+  };
+
+  // Get available contacts (not already in the group)
+  const availableContacts = contacts.filter(contact => 
+    !groupMembers.some(member => member.id === contact.id)
+  );
 
   // Group contacts by their tags for easy visualization
   const contactsByTag = contacts.reduce((acc, contact) => {
@@ -248,19 +362,208 @@ export default function Groups() {
           )}
         </div>
 
-        {/* Future: Manual Groups */}
+        {/* Manual Groups */}
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-4">
-            <i className="fas fa-layer-group mr-2 text-green-600"></i>
-            Custom Groups (Coming Soon)
+            <i className="fas fa-layer-group mr-2 text-purple-600"></i>
+            Custom Groups ({groups.length})
           </h2>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm text-green-800">
-              <i className="fas fa-info-circle mr-2"></i>
-              Manual group creation and contact assignment will be available in the next update.
-            </p>
-          </div>
+          
+          {groups.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {groups.map((group) => (
+                <div key={group.id} className="bg-white rounded-lg border border-slate-200 p-4 hover:shadow-lg transition-all hover:scale-105">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mr-3">
+                        <i className="fas fa-users text-white text-lg"></i>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900">{group.name}</h3>
+                        <p className="text-sm text-slate-500 line-clamp-2">
+                          {group.description || 'No description'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                      Loading members...
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleManageGroup(group)}
+                    >
+                      <i className="fas fa-cog mr-2"></i>
+                      Manage
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                    >
+                      <i className="fas fa-paper-plane mr-2"></i>
+                      Message
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border-2 border-dashed border-purple-300">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-layer-group text-white text-2xl"></i>
+              </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">No Custom Groups Yet</h3>
+              <p className="text-slate-500 mb-4">
+                Create custom groups to organize your contacts manually and send targeted messages.
+              </p>
+              <Button onClick={() => setCreateModalOpen(true)} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                <i className="fas fa-plus mr-2"></i>
+                Create Your First Group
+              </Button>
+            </div>
+          )}
         </div>
+
+        {/* Group Management Modal */}
+        <Dialog open={manageModalOpen} onOpenChange={setManageModalOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <i className="fas fa-users mr-2 text-purple-600"></i>
+                Manage Group: {selectedGroup?.name}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Current Members */}
+              <div>
+                <h3 className="font-medium text-slate-900 mb-3 flex items-center">
+                  <i className="fas fa-user-friends mr-2 text-blue-600"></i>
+                  Current Members ({groupMembers.length})
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3">
+                  {groupMembers.length > 0 ? (
+                    groupMembers.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                            <i className="fas fa-user text-blue-600 text-sm"></i>
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{member.name || member.phoneNumber}</p>
+                            <p className="text-xs text-slate-500">{member.phoneNumber}</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveMember(member.id)}
+                          className="text-red-600 hover:text-red-700 hover:border-red-300"
+                        >
+                          <i className="fas fa-times"></i>
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-slate-500 text-center py-4">No members in this group yet</p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Add Members */}
+              <div>
+                <h3 className="font-medium text-slate-900 mb-3 flex items-center">
+                  <i className="fas fa-user-plus mr-2 text-green-600"></i>
+                  Add Members ({selectedContacts.length} selected)
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3">
+                  {availableContacts.length > 0 ? (
+                    availableContacts.map((contact) => (
+                      <div key={contact.id} className="flex items-center p-2 hover:bg-slate-50 rounded">
+                        <Checkbox
+                          checked={selectedContacts.includes(contact.id)}
+                          onCheckedChange={() => handleToggleContact(contact.id)}
+                          className="mr-3"
+                        />
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                          <i className="fas fa-user text-green-600 text-sm"></i>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{contact.name || contact.phoneNumber}</p>
+                          <p className="text-xs text-slate-500">{contact.phoneNumber}</p>
+                          {Array.isArray(contact.tags) && contact.tags.length > 0 && (
+                            <div className="flex space-x-1 mt-1">
+                              {contact.tags.slice(0, 2).map((tag) => (
+                                <Badge key={tag} variant="outline" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-slate-500 text-center py-4">All contacts are already in this group</p>
+                  )}
+                </div>
+                
+                {selectedContacts.length > 0 && (
+                  <Button
+                    onClick={handleAddSelectedMembers}
+                    disabled={addMembersMutation.isPending}
+                    className="w-full mt-3 bg-green-600 hover:bg-green-700"
+                  >
+                    {addMembersMutation.isPending ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-plus mr-2"></i>
+                        Add {selectedContacts.length} Member{selectedContacts.length !== 1 ? 's' : ''}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {/* Group Actions */}
+            <div className="flex justify-between pt-4 border-t">
+              <Button
+                variant="destructive"
+                onClick={() => selectedGroup && deleteGroupMutation.mutate(selectedGroup.id)}
+                disabled={deleteGroupMutation.isPending}
+              >
+                {deleteGroupMutation.isPending ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-trash mr-2"></i>
+                    Delete Group
+                  </>
+                )}
+              </Button>
+              
+              <Button variant="outline" onClick={() => setManageModalOpen(false)}>
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

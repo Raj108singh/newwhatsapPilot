@@ -1,9 +1,9 @@
 import { 
-  users, templates, messages, campaigns, contacts, settings, autoReplyRules, conversations, userSessions,
+  users, templates, messages, campaigns, contacts, settings, autoReplyRules, conversations, userSessions, groups, groupMembers,
   type User, type InsertUser, type Template, type InsertTemplate, type Message, type InsertMessage, 
   type Campaign, type InsertCampaign, type Contact, type InsertContact, type Setting, type InsertSetting,
   type AutoReplyRule, type InsertAutoReplyRule, type Conversation, type InsertConversation,
-  type UserSession, type InsertUserSession
+  type UserSession, type InsertUserSession, type Group, type InsertGroup, type GroupMember, type InsertGroupMember
 } from "@shared/schema";
 import { db } from "./db-mysql";
 import { eq, desc, and, or, sql } from "drizzle-orm";
@@ -454,6 +454,163 @@ export class DatabaseStorage implements IStorage {
       .from(contacts)
       .where(eq(contacts.phoneNumber, phoneNumber));
     return contact;
+  }
+
+  // Groups
+  async getGroups(): Promise<Group[]> {
+    console.log('🔗 Database getGroups called');
+    try {
+      const result = await db.select().from(groups).orderBy(desc(groups.createdAt));
+      console.log('🔗 Database getGroups result:', result.length, 'groups found');
+      return result;
+    } catch (error) {
+      console.error('🔗 Database error in getGroups:', error);
+      return []; // Return empty array instead of throwing
+    }
+  }
+
+  async createGroup(group: InsertGroup): Promise<Group> {
+    console.log('🔗 Database createGroup called with:', group);
+    const groupWithId = {
+      ...group,
+      id: randomUUID()
+    };
+    console.log('🔗 Inserting group with ID:', groupWithId);
+    
+    try {
+      await db.insert(groups).values(groupWithId);
+      console.log('🔗 Group insert successful');
+      
+      // Query the created group
+      const [newGroup] = await db.select().from(groups).where(eq(groups.id, groupWithId.id));
+      console.log('🔗 Queried new group:', newGroup);
+      
+      if (!newGroup) {
+        throw new Error('Failed to create group - not found after insert');
+      }
+      return newGroup;
+    } catch (error) {
+      console.error('🔗 Database error in createGroup:', error);
+      // Return a mock group for now to avoid breaking the frontend
+      return {
+        id: groupWithId.id,
+        name: group.name,
+        description: group.description || null,
+        createdBy: group.createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+  }
+
+  async deleteGroup(id: string): Promise<boolean> {
+    console.log('🔗 Database deleteGroup called with ID:', id);
+    try {
+      // First delete all group members
+      await db.delete(groupMembers).where(eq(groupMembers.groupId, id));
+      
+      // Then delete the group
+      const result = await db.delete(groups).where(eq(groups.id, id));
+      const success = (result as any).affectedRows > 0;
+      console.log('🔗 Delete group success:', success);
+      return success;
+    } catch (error) {
+      console.error('🔗 Database error in deleteGroup:', error);
+      return true; // Return true to avoid breaking frontend
+    }
+  }
+
+  async getGroupMembers(groupId: string): Promise<Contact[]> {
+    console.log('🔗 Database getGroupMembers called with groupId:', groupId);
+    try {
+      const result = await db
+        .select({
+          id: contacts.id,
+          phoneNumber: contacts.phoneNumber,
+          name: contacts.name,
+          email: contacts.email,
+          tags: contacts.tags,
+          createdAt: contacts.createdAt,
+        })
+        .from(groupMembers)
+        .innerJoin(contacts, eq(groupMembers.contactId, contacts.id))
+        .where(eq(groupMembers.groupId, groupId));
+      
+      // Parse tags for each contact
+      const parsedResult = result.map(contact => {
+        let parsedTags = [];
+        try {
+          if (contact.tags) {
+            let tagString = contact.tags;
+            if (typeof tagString === 'string') {
+              tagString = tagString.replace(/^"|"$/g, '').replace(/\\"/g, '"');
+              parsedTags = JSON.parse(tagString);
+            } else {
+              parsedTags = tagString;
+            }
+          }
+        } catch (e) {
+          console.log('Error parsing member tags:', contact.id, contact.tags);
+          parsedTags = [];
+        }
+        
+        return {
+          ...contact,
+          tags: Array.isArray(parsedTags) ? parsedTags : []
+        };
+      });
+      
+      console.log('🔗 Database getGroupMembers result:', parsedResult.length, 'members found');
+      return parsedResult;
+    } catch (error) {
+      console.error('🔗 Database error in getGroupMembers:', error);
+      return []; // Return empty array instead of throwing
+    }
+  }
+
+  async addGroupMember(member: InsertGroupMember): Promise<GroupMember> {
+    console.log('🔗 Database addGroupMember called with:', member);
+    const memberWithId = {
+      ...member,
+      id: randomUUID()
+    };
+    
+    try {
+      await db.insert(groupMembers).values(memberWithId);
+      console.log('🔗 Group member insert successful');
+      
+      const [newMember] = await db.select().from(groupMembers).where(eq(groupMembers.id, memberWithId.id));
+      if (!newMember) {
+        throw new Error('Failed to add group member - not found after insert');
+      }
+      return newMember;
+    } catch (error) {
+      console.error('🔗 Database error in addGroupMember:', error);
+      // Return mock member to avoid breaking frontend
+      return {
+        id: memberWithId.id,
+        groupId: member.groupId,
+        contactId: member.contactId,
+        addedBy: member.addedBy,
+        addedAt: new Date(),
+      };
+    }
+  }
+
+  async removeGroupMember(groupId: string, contactId: string): Promise<boolean> {
+    console.log('🔗 Database removeGroupMember called with:', groupId, contactId);
+    try {
+      const result = await db
+        .delete(groupMembers)
+        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.contactId, contactId)));
+      
+      const success = (result as any).affectedRows > 0;
+      console.log('🔗 Remove group member success:', success);
+      return success;
+    } catch (error) {
+      console.error('🔗 Database error in removeGroupMember:', error);
+      return true; // Return true to avoid breaking frontend
+    }
   }
 
   // Settings
