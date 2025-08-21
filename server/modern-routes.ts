@@ -1254,5 +1254,52 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contacts API
+  app.get('/api/contacts', authenticate, async (req, res) => {
+    try {
+      console.log('📞 GET /api/contacts - Fetching contacts');
+      const contacts = await storage.getContacts();
+      console.log('📞 GET /api/contacts - Found contacts:', contacts.length);
+      res.json(contacts);
+    } catch (error) {
+      console.error('❌ GET /api/contacts error:', error);
+      res.status(500).json({ error: 'Failed to fetch contacts' });
+    }
+  });
+
+  app.post('/api/contacts', authenticate, async (req, res) => {
+    try {
+      console.log('📞 POST /api/contacts - Request body:', req.body);
+      const contactData = insertContactSchema.parse(req.body);
+      console.log('📞 POST /api/contacts - Parsed data:', contactData);
+      const contact = await storage.createContact(contactData);
+      console.log('📞 POST /api/contacts - Created contact:', contact);
+      res.json(contact);
+    } catch (error) {
+      console.error('❌ POST /api/contacts error:', error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Invalid contact data', details: error.errors });
+      } else {
+        res.status(500).json({ error: 'Failed to create contact', message: error.message });
+      }
+    }
+  });
+
+  app.delete('/api/contacts/:id', authenticate, async (req, res) => {
+    try {
+      console.log('📞 DELETE /api/contacts - Contact ID:', req.params.id);
+      const success = await storage.deleteContact(req.params.id);
+      if (success) {
+        console.log('📞 DELETE /api/contacts - Contact deleted successfully');
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: 'Contact not found' });
+      }
+    } catch (error) {
+      console.error('❌ DELETE /api/contacts error:', error);
+      res.status(500).json({ error: 'Failed to delete contact' });
+    }
+  });
+
   return httpServer;
 }
