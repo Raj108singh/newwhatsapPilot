@@ -25,6 +25,7 @@ export default function Contacts() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTag, setSelectedTag] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -296,12 +297,34 @@ export default function Contacts() {
     fileInputRef.current?.click();
   };
 
-  // Filter contacts based on search term
-  const filteredContacts = contacts.filter(contact =>
-    contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.phoneNumber.includes(searchTerm) ||
-    contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Get all unique tags for filtering
+  const allTags = Array.from(
+    new Set(
+      contacts.flatMap(contact => 
+        Array.isArray(contact.tags) ? contact.tags : []
+      )
+    )
+  ).sort();
+
+  // Filter contacts based on search term and selected tag
+  const filteredContacts = contacts.filter(contact => {
+    const matchesSearch = contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.phoneNumber.includes(searchTerm) ||
+      contact.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesTag = selectedTag === "all" || 
+      (Array.isArray(contact.tags) && contact.tags.includes(selectedTag));
+      
+    return matchesSearch && matchesTag;
+  });
+
+  // Group contacts by tags for group view
+  const groupedContacts = allTags.reduce((groups, tag) => {
+    groups[tag] = contacts.filter(contact => 
+      Array.isArray(contact.tags) && contact.tags.includes(tag)
+    );
+    return groups;
+  }, {} as Record<string, typeof contacts>);
 
   if (isLoading) {
     return (
@@ -544,7 +567,7 @@ export default function Contacts() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-6">
         {/* Search and Filter */}
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
           <div className="flex items-center space-x-4">
             <div className="flex-1 max-w-md">
               <Input
@@ -558,6 +581,43 @@ export default function Contacts() {
               {filteredContacts.length} of {contacts.length} contacts
             </div>
           </div>
+          
+          {/* Group/Tag Filter */}
+          {allTags.length > 0 && (
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-slate-700">Filter by Tag:</span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setSelectedTag("all")}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    selectedTag === "all" 
+                      ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  All ({contacts.length})
+                </button>
+                {allTags.map(tag => {
+                  const count = contacts.filter(contact => 
+                    Array.isArray(contact.tags) && contact.tags.includes(tag)
+                  ).length;
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => setSelectedTag(tag)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        selectedTag === tag
+                          ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {tag} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Contacts Grid */}

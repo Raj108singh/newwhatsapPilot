@@ -311,10 +311,26 @@ export class DatabaseStorage implements IStorage {
       console.log('🔗 Database getContacts result:', result.length, 'contacts found');
       
       // Parse tags from JSON string to array for frontend
-      const parsedResult = result.map(contact => ({
-        ...contact,
-        tags: contact.tags ? (typeof contact.tags === 'string' ? JSON.parse(contact.tags) : contact.tags) : []
-      }));
+      const parsedResult = result.map(contact => {
+        let parsedTags = [];
+        try {
+          if (contact.tags) {
+            if (typeof contact.tags === 'string') {
+              parsedTags = JSON.parse(contact.tags);
+            } else {
+              parsedTags = contact.tags;
+            }
+          }
+        } catch (e) {
+          console.log('Error parsing tags for contact:', contact.id, contact.tags);
+          parsedTags = [];
+        }
+        
+        return {
+          ...contact,
+          tags: parsedTags
+        };
+      });
       
       console.log('🔗 First 3 contacts with parsed tags:', parsedResult.slice(0, 3));
       return parsedResult;
@@ -364,33 +380,64 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateContact(id: string, contactData: Partial<InsertContact>): Promise<Contact | undefined> {
+    console.log('🔗 Database updateContact called with:', id, contactData);
+    
     const updateData = {
       ...contactData,
-      tags: contactData.tags ? JSON.stringify(contactData.tags) : undefined
+      tags: contactData.tags ? JSON.stringify(contactData.tags) : null
     };
     
-    await db
+    console.log('🔗 Updating with data:', updateData);
+    
+    const result = await db
       .update(contacts)
       .set(updateData)
       .where(eq(contacts.id, id));
+      
+    console.log('🔗 Update result:', result);
     
     // Query the updated contact
     const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+    console.log('🔗 Updated contact from DB:', contact);
     
     if (!contact) return undefined;
     
     // Parse tags back to array for return
+    let parsedTags = [];
+    try {
+      if (contact.tags) {
+        if (typeof contact.tags === 'string') {
+          parsedTags = JSON.parse(contact.tags);
+        } else {
+          parsedTags = contact.tags;
+        }
+      }
+    } catch (e) {
+      console.log('Error parsing updated contact tags:', contact.tags);
+      parsedTags = [];
+    }
+    
     const parsedContact = {
       ...contact,
-      tags: contact.tags ? (typeof contact.tags === 'string' ? JSON.parse(contact.tags) : contact.tags) : []
+      tags: parsedTags
     };
     
+    console.log('🔗 Returning parsed contact:', parsedContact);
     return parsedContact;
   }
 
   async deleteContact(id: string): Promise<boolean> {
-    const result = await db.delete(contacts).where(eq(contacts.id, id));
-    return (result as any).affectedRows > 0;
+    console.log('🔗 Database deleteContact called with ID:', id);
+    try {
+      const result = await db.delete(contacts).where(eq(contacts.id, id));
+      console.log('🔗 Delete result:', result);
+      const success = (result as any).affectedRows > 0;
+      console.log('🔗 Delete success:', success);
+      return success;
+    } catch (error) {
+      console.error('🔗 Database error in deleteContact:', error);
+      throw error;
+    }
   }
 
   async getContactByPhoneNumber(phoneNumber: string): Promise<Contact | undefined> {
