@@ -367,10 +367,14 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
 
           {/* Template Selection */}
           <div>
-            <Label htmlFor="template">Select Template</Label>
+            <Label htmlFor="template" className="text-base font-semibold">
+              <i className="fas fa-file-alt mr-2 text-purple-600"></i>
+              Select WhatsApp Template
+            </Label>
+            <p className="text-sm text-slate-600 mb-3">Choose the message template to send to your recipients</p>
             <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-              <SelectTrigger data-testid="select-template">
-                <SelectValue placeholder="Choose a template..." />
+              <SelectTrigger data-testid="select-template" className="h-12">
+                <SelectValue placeholder="🔍 Choose a WhatsApp template to send..." />
               </SelectTrigger>
               <SelectContent>
                 {templates
@@ -416,7 +420,11 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
 
           {/* Recipients */}
           <div>
-            <Label>Recipients</Label>
+            <Label className="text-base font-semibold">
+              <i className="fas fa-paper-plane mr-2 text-blue-600"></i>
+              Choose Recipients
+            </Label>
+            <p className="text-sm text-slate-600 mb-3">Select who will receive your WhatsApp message</p>
             <Tabs value={recipientType} onValueChange={(value) => setRecipientType(value as any)} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="manual">Manual Entry</TabsTrigger>
@@ -465,37 +473,66 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                     <p>No groups available. Create a group first.</p>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {groups.map((group) => (
-                      <div key={group.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-slate-50">
-                        <Checkbox
-                          id={`group-${group.id}`}
-                          checked={selectedGroups.includes(group.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedGroups([...selectedGroups, group.id]);
-                            } else {
-                              setSelectedGroups(selectedGroups.filter(id => id !== group.id));
-                            }
-                          }}
-                        />
-                        <label htmlFor={`group-${group.id}`} className="flex-1 cursor-pointer">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">{group.name}</p>
-                              <p className="text-sm text-slate-500">{group.description}</p>
-                            </div>
-                            <Badge variant="secondary">Group</Badge>
-                          </div>
-                        </label>
+                  <>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                      <div className="flex items-center text-blue-700">
+                        <i className="fas fa-info-circle mr-2"></i>
+                        <span className="text-sm font-medium">
+                          Select groups to send messages to all their members automatically
+                        </span>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {groups.map((group) => (
+                        <div key={group.id} className={`flex items-center space-x-3 p-4 border-2 rounded-lg hover:bg-slate-50 transition-all cursor-pointer ${
+                          selectedGroups.includes(group.id) ? 'border-blue-500 bg-blue-50' : 'border-slate-200'
+                        }`}>
+                          <Checkbox
+                            id={`group-${group.id}`}
+                            checked={selectedGroups.includes(group.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedGroups([...selectedGroups, group.id]);
+                              } else {
+                                setSelectedGroups(selectedGroups.filter(id => id !== group.id));
+                              }
+                            }}
+                            className="h-5 w-5"
+                          />
+                          <label htmlFor={`group-${group.id}`} className="flex-1 cursor-pointer">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-slate-900">{group.name}</p>
+                                <p className="text-sm text-slate-600">{group.description}</p>
+                                <p className="text-xs text-blue-600 mt-1">
+                                  <i className="fas fa-users mr-1"></i>
+                                  Click to add all group members as recipients
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <Badge variant="secondary" className="mb-1">Custom Group</Badge>
+                                {selectedGroups.includes(group.id) && (
+                                  <div className="text-xs text-blue-600 font-medium">
+                                    <i className="fas fa-check-circle mr-1"></i>
+                                    Selected
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
                 {selectedGroups.length > 0 && (
-                  <div className="text-sm text-slate-600">
-                    <i className="fas fa-info-circle mr-1"></i>
-                    {selectedGroups.length} group(s) selected
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center text-green-700">
+                      <i className="fas fa-check-circle mr-2"></i>
+                      <span className="text-sm font-semibold">
+                        {selectedGroups.length} group(s) selected - Messages will be sent to all members
+                      </span>
+                    </div>
                   </div>
                 )}
               </TabsContent>
@@ -507,45 +544,70 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                     <p>No contacts available. Add contacts first.</p>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {contacts.map((contact) => (
-                      <div key={contact.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-slate-50">
-                        <Checkbox
-                          id={`contact-${contact.id}`}
-                          checked={selectedContacts.includes(contact.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedContacts([...selectedContacts, contact.id]);
-                            } else {
-                              setSelectedContacts(selectedContacts.filter(id => id !== contact.id));
-                            }
-                          }}
-                        />
-                        <label htmlFor={`contact-${contact.id}`} className="flex-1 cursor-pointer">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">{contact.name}</p>
-                              <p className="text-sm text-slate-500">{contact.phoneNumber}</p>
-                              {contact.tags && contact.tags.length > 0 && (
-                                <div className="flex gap-1 mt-1">
-                                  {contact.tags.map((tag, idx) => (
-                                    <Badge key={idx} variant="outline" className="text-xs">
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </label>
+                  <>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                      <div className="flex items-center text-green-700">
+                        <i className="fas fa-info-circle mr-2"></i>
+                        <span className="text-sm font-medium">
+                          Select individual contacts to send messages to specific people
+                        </span>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {contacts.map((contact) => (
+                        <div key={contact.id} className={`flex items-center space-x-3 p-4 border-2 rounded-lg hover:bg-slate-50 transition-all cursor-pointer ${
+                          selectedContacts.includes(contact.id) ? 'border-green-500 bg-green-50' : 'border-slate-200'
+                        }`}>
+                          <Checkbox
+                            id={`contact-${contact.id}`}
+                            checked={selectedContacts.includes(contact.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedContacts([...selectedContacts, contact.id]);
+                              } else {
+                                setSelectedContacts(selectedContacts.filter(id => id !== contact.id));
+                              }
+                            }}
+                            className="h-5 w-5"
+                          />
+                          <label htmlFor={`contact-${contact.id}`} className="flex-1 cursor-pointer">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-slate-900">{contact.name || contact.phoneNumber}</p>
+                                <p className="text-sm text-slate-600">{contact.phoneNumber}</p>
+                                {Array.isArray(contact.tags) && contact.tags.length > 0 && (
+                                  <div className="flex gap-1 mt-1">
+                                    {contact.tags.map((tag: string, idx: number) => (
+                                      <Badge key={idx} variant="outline" className="text-xs">
+                                        {tag}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                {selectedContacts.includes(contact.id) && (
+                                  <div className="text-xs text-green-600 font-medium">
+                                    <i className="fas fa-check-circle mr-1"></i>
+                                    Selected
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
                 {selectedContacts.length > 0 && (
-                  <div className="text-sm text-slate-600">
-                    <i className="fas fa-info-circle mr-1"></i>
-                    {selectedContacts.length} contact(s) selected
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center text-green-700">
+                      <i className="fas fa-check-circle mr-2"></i>
+                      <span className="text-sm font-semibold">
+                        {selectedContacts.length} contact(s) selected for messaging
+                      </span>
+                    </div>
                   </div>
                 )}
               </TabsContent>
@@ -597,7 +659,7 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                 
                 {selectedTemplate.components && Array.isArray(selectedTemplate.components) && (
                   <div className="space-y-2">
-                    {(selectedTemplate.components as any[]).map((component: any, index: number) => (
+                    {(selectedTemplate.components as any[]).map((component: any, index: number): React.ReactNode => (
                       <div key={index} className="text-sm">
                         {component.type === "HEADER" && (
                           <div className="bg-blue-50 p-2 rounded">
@@ -653,7 +715,7 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                 <div className="text-sm text-amber-800">
                   This template requires {templateParams.length} parameter(s). Fill in the values below:
                 </div>
-                {templateParams.map((param: any, index: number) => (
+                {templateParams.map((param: any, index: number): React.ReactNode => (
                   <div key={param.placeholder} className="space-y-1">
                     <Label className="block text-sm font-medium text-slate-700">
                       {param.label}
