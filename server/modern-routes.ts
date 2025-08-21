@@ -121,7 +121,19 @@ class AutoReplyService {
       case 'numeric':
         // Check if content is a number and matches the trigger range
         const num = parseInt(content.trim());
-        if (isNaN(num)) return false;
+        if (isNaN(num)) {
+          // Also check if trigger contains non-numeric keywords for mixed content
+          if (trigger.includes(',')) {
+            const keywords = trigger.split(',').map((k: string) => k.trim().toLowerCase());
+            return keywords.some((keyword: string) => {
+              if (isNaN(parseInt(keyword))) {
+                return lowerContent.includes(keyword);
+              }
+              return false;
+            });
+          }
+          return false;
+        }
         
         if (trigger.includes('-')) {
           const [min, max] = trigger.split('-').map((n: string) => parseInt(n.trim()));

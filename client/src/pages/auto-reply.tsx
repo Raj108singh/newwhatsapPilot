@@ -299,7 +299,7 @@ export default function AutoReplyPage() {
                         <FormLabel>Reply Message</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Hello! 👋 Thanks for contacting us. How can we help you today? 😊&#10;&#10;Choose an option:&#10;1️⃣ Product Info 📦&#10;2️⃣ Pricing 💰&#10;3️⃣ Support 🛠️"
+                            placeholder="Hello! 👋 Thanks for contacting us. How can we help you today? 😊&#10;&#10;Choose an option:&#10;1️⃣ Product Info 📦&#10;2️⃣ Pricing 💰&#10;3️⃣ Support 🛠️&#10;4️⃣ Contact Us 📞"
                             rows={6}
                             data-testid="textarea-reply-message"
                             {...field} 
