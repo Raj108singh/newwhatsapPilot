@@ -48,7 +48,7 @@ class AutoReplyService {
     return null;
   }
 
-  private async matchesRule(content: string, rule: any, context: any, phoneNumber: string): boolean {
+  private async matchesRule(content: string, rule: any, context: any, phoneNumber: string): Promise<boolean> {
     const lowerContent = content.toLowerCase().trim();
     const trigger = rule.trigger.toLowerCase();
     
@@ -107,10 +107,10 @@ class AutoReplyService {
         if (isNaN(num)) return false;
         
         if (trigger.includes('-')) {
-          const [min, max] = trigger.split('-').map(n => parseInt(n.trim()));
+          const [min, max] = trigger.split('-').map((n: string) => parseInt(n.trim()));
           return num >= min && num <= max;
         } else if (trigger.includes(',')) {
-          const validNumbers = trigger.split(',').map(n => parseInt(n.trim()));
+          const validNumbers = trigger.split(',').map((n: string) => parseInt(n.trim()));
           return validNumbers.includes(num);
         } else {
           return num === parseInt(trigger);
@@ -132,8 +132,8 @@ class AutoReplyService {
       
       case 'contains_any':
         // Trigger should be comma-separated keywords
-        const keywords = trigger.split(',').map(k => k.trim());
-        return keywords.some(keyword => lowerContent.includes(keyword));
+        const keywords = trigger.split(',').map((k: string) => k.trim());
+        return keywords.some((keyword: string) => lowerContent.includes(keyword));
       
       case 'default':
         // Default rule only triggers if no other rule matched

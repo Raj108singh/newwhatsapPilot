@@ -312,7 +312,7 @@ export class DatabaseStorage implements IStorage {
       
       // Parse tags from JSON string to array for frontend
       const parsedResult = result.map(contact => {
-        let parsedTags = [];
+        let parsedTags: any[] = [];
         try {
           if (contact.tags) {
             let tagString = contact.tags;
@@ -324,7 +324,6 @@ export class DatabaseStorage implements IStorage {
             } else if (Array.isArray(tagString)) {
               parsedTags = tagString;
             } else {
-              parsedTags = [];
               parsedTags = [];
             }
           }
@@ -551,7 +550,7 @@ export class DatabaseStorage implements IStorage {
       const rawMembers = await db.execute(sql`SELECT * FROM group_members WHERE group_id = ${groupId}`);
       console.log('🔗 Raw group members data:', JSON.stringify(rawMembers, null, 2));
       
-      if (rawMembers.length === 0) {
+      if ((rawMembers as any).length === 0) {
         console.log('🔗 No members found in group_members table for group:', groupId);
         return [];
       }
@@ -573,7 +572,7 @@ export class DatabaseStorage implements IStorage {
       
       // Parse tags for each contact
       const parsedResult = result.map(contact => {
-        let parsedTags = [];
+        let parsedTags: any[] = [];
         try {
           if (contact.tags) {
             let tagString = contact.tags;
@@ -657,7 +656,7 @@ export class DatabaseStorage implements IStorage {
       const specificMember = await db.execute(sql`SELECT * FROM group_members WHERE group_id = ${groupId} AND contact_id = ${contactId}`);
       console.log('🔗 Specific member query result:', JSON.stringify(specificMember, null, 2));
       
-      if (specificMember.length === 0) {
+      if ((specificMember as any).length === 0) {
         console.log('🔗 Member not found in database');
         return false;
       }
