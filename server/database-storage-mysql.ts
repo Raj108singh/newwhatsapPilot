@@ -305,7 +305,16 @@ export class DatabaseStorage implements IStorage {
 
   // Contacts
   async getContacts(): Promise<Contact[]> {
-    return await db.select().from(contacts).orderBy(desc(contacts.createdAt));
+    console.log('🔗 Database getContacts called');
+    try {
+      const result = await db.select().from(contacts).orderBy(desc(contacts.createdAt));
+      console.log('🔗 Database getContacts result:', result.length, 'contacts found');
+      console.log('🔗 First 3 contacts:', result.slice(0, 3));
+      return result;
+    } catch (error) {
+      console.error('🔗 Database error in getContacts:', error);
+      throw error;
+    }
   }
 
   async getContact(id: string): Promise<Contact | undefined> {
@@ -314,17 +323,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContact(contact: InsertContact): Promise<Contact> {
+    console.log('🔗 Database createContact called with:', contact);
     const contactWithId = {
       ...contact,
       id: randomUUID()
     };
-    await db.insert(contacts).values(contactWithId);
-    // Query the created contact
-    const [newContact] = await db.select().from(contacts).where(eq(contacts.phoneNumber, contact.phoneNumber));
-    if (!newContact) {
-      throw new Error('Failed to create contact');
+    console.log('🔗 Inserting contact with ID:', contactWithId);
+    
+    try {
+      const result = await db.insert(contacts).values(contactWithId);
+      console.log('🔗 Insert result:', result);
+      
+      // Query the created contact
+      const [newContact] = await db.select().from(contacts).where(eq(contacts.phoneNumber, contact.phoneNumber));
+      console.log('🔗 Queried new contact:', newContact);
+      
+      if (!newContact) {
+        throw new Error('Failed to create contact - not found after insert');
+      }
+      return newContact;
+    } catch (error) {
+      console.error('🔗 Database error in createContact:', error);
+      throw error;
     }
-    return newContact;
   }
 
   async updateContact(id: string, contactData: Partial<InsertContact>): Promise<Contact | undefined> {

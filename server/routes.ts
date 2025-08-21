@@ -1001,22 +1001,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/contacts', async (req, res) => {
     try {
       const contacts = await storage.getContacts();
+      console.log('📞 GET /api/contacts - Found contacts:', contacts.length);
       res.json(contacts);
     } catch (error) {
+      console.error('❌ GET /api/contacts error:', error);
       res.status(500).json({ error: 'Failed to fetch contacts' });
     }
   });
 
   app.post('/api/contacts', async (req, res) => {
     try {
+      console.log('📞 POST /api/contacts - Request body:', req.body);
       const contactData = insertContactSchema.parse(req.body);
+      console.log('📞 POST /api/contacts - Parsed data:', contactData);
       const contact = await storage.createContact(contactData);
+      console.log('📞 POST /api/contacts - Created contact:', contact);
       res.json(contact);
     } catch (error) {
+      console.error('❌ POST /api/contacts error:', error);
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: 'Invalid contact data', details: error.errors });
       } else {
-        res.status(500).json({ error: 'Failed to create contact' });
+        res.status(500).json({ error: 'Failed to create contact', message: error.message });
       }
     }
   });
