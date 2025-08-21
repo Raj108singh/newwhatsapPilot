@@ -255,3 +255,39 @@ export interface AuthUser {
   role: string;
   email: string;
 }
+
+// Groups table for WhatsApp-style group management
+export const groups = mysqlTable('groups', {
+  id: varchar('id', { length: 36 }).notNull().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  createdBy: varchar('created_by', { length: 36 }).notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
+});
+
+// Group members junction table
+export const groupMembers = mysqlTable('group_members', {
+  id: varchar('id', { length: 36 }).notNull().primaryKey(),
+  groupId: varchar('group_id', { length: 36 }).notNull(),
+  contactId: varchar('contact_id', { length: 36 }).notNull(),
+  addedBy: varchar('added_by', { length: 36 }).notNull(),
+  addedAt: timestamp('added_at').notNull().defaultNow(),
+});
+
+// Groups Types
+export const insertGroupSchema = createInsertSchema(groups).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertGroup = z.infer<typeof insertGroupSchema>;
+export type Group = typeof groups.$inferSelect;
+
+// Group Members Types  
+export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
+  id: true,
+  addedAt: true,
+});
+export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;
+export type GroupMember = typeof groupMembers.$inferSelect;

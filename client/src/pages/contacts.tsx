@@ -670,15 +670,6 @@ export default function Contacts() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleSendMessage(contact)}
-                          data-testid={`button-message-contact-${contact.id}`}
-                        >
-                          <i className="fas fa-paper-plane mr-2"></i>
-                          Message
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
                           onClick={() => deleteContactMutation.mutate(contact.id)}
                           disabled={deleteContactMutation.isPending}
                           data-testid={`button-delete-contact-${contact.id}`}

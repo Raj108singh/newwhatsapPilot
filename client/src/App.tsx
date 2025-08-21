@@ -11,6 +11,7 @@ import Chat from "@/pages/chat";
 import Templates from "@/pages/templates";
 import Analytics from "@/pages/analytics";
 import Contacts from "@/pages/contacts";
+import Groups from "@/pages/groups";
 import Settings from "@/pages/settings";
 import ConversationsPage from "@/pages/conversations";
 import AutoReplyPage from "@/pages/auto-reply";
@@ -83,6 +84,7 @@ function AppLayout() {
           <Route path="/chat" component={Chat} />
           <Route path="/templates" component={Templates} />
           <Route path="/contacts" component={Contacts} />
+          <Route path="/groups" component={Groups} />
           <Route path="/analytics" component={Analytics} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />

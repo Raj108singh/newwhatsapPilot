@@ -19,6 +19,7 @@ const navigation = [
   { name: "Auto Reply", href: "/auto-reply", icon: Bot },
   { name: "Templates", href: "/templates", icon: Template },
   { name: "Contacts", href: "/contacts", icon: Users },
+  { name: "Groups", href: "/groups", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

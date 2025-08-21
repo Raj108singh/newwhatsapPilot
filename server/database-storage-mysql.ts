@@ -315,20 +315,24 @@ export class DatabaseStorage implements IStorage {
         let parsedTags = [];
         try {
           if (contact.tags) {
-            if (typeof contact.tags === 'string') {
-              parsedTags = JSON.parse(contact.tags);
+            let tagString = contact.tags;
+            // Handle double-encoded JSON strings
+            if (typeof tagString === 'string') {
+              // Remove extra quotes and unescape if needed
+              tagString = tagString.replace(/^"|"$/g, '').replace(/\\"/g, '"');
+              parsedTags = JSON.parse(tagString);
             } else {
-              parsedTags = contact.tags;
+              parsedTags = tagString;
             }
           }
         } catch (e) {
-          console.log('Error parsing tags for contact:', contact.id, contact.tags);
+          console.log('Error parsing tags for contact:', contact.id, contact.tags, e);
           parsedTags = [];
         }
         
         return {
           ...contact,
-          tags: parsedTags
+          tags: Array.isArray(parsedTags) ? parsedTags : []
         };
       });
       
@@ -406,20 +410,24 @@ export class DatabaseStorage implements IStorage {
     let parsedTags = [];
     try {
       if (contact.tags) {
-        if (typeof contact.tags === 'string') {
-          parsedTags = JSON.parse(contact.tags);
+        let tagString = contact.tags;
+        // Handle double-encoded JSON strings
+        if (typeof tagString === 'string') {
+          // Remove extra quotes and unescape if needed
+          tagString = tagString.replace(/^"|"$/g, '').replace(/\\"/g, '"');
+          parsedTags = JSON.parse(tagString);
         } else {
-          parsedTags = contact.tags;
+          parsedTags = tagString;
         }
       }
     } catch (e) {
-      console.log('Error parsing updated contact tags:', contact.tags);
+      console.log('Error parsing updated contact tags:', contact.tags, e);
       parsedTags = [];
     }
     
     const parsedContact = {
       ...contact,
-      tags: parsedTags
+      tags: Array.isArray(parsedTags) ? parsedTags : []
     };
     
     console.log('🔗 Returning parsed contact:', parsedContact);
