@@ -1,7 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import { storage } from "./storage";
+import { DatabaseStorage } from "./database-storage-mysql";
+
+const storage = new DatabaseStorage();
 import { authService } from "./auth";
 import { 
   insertTemplateSchema, insertMessageSchema, insertCampaignSchema, insertContactSchema, insertSettingSchema,
