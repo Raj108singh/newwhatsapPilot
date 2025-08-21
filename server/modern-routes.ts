@@ -898,15 +898,18 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const ruleData = insertAutoReplyRuleSchema.partial().parse(req.body);
+      console.log('🔧 Updating auto-reply rule:', id, 'with data:', ruleData);
       const rule = await storage.updateAutoReplyRule(id, ruleData);
       
       if (!rule) {
         return res.status(404).json({ error: "Auto reply rule not found" });
       }
       
+      console.log('✅ Auto-reply rule updated successfully:', rule);
       res.json(rule);
     } catch (error) {
-      res.status(500).json({ error: "Failed to update auto reply rule" });
+      console.error('❌ Failed to update auto reply rule:', error);
+      res.status(500).json({ error: "Failed to update auto reply rule", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
