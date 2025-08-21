@@ -24,34 +24,232 @@ async function authenticate(req: any, res: any, next: any) {
   next();
 }
 
-// Auto-reply service
+// Enhanced Auto-reply service with complete chat support
 class AutoReplyService {
+  private conversationContext = new Map<string, any>();
+
   async processIncomingMessage(phoneNumber: string, content: string): Promise<string | null> {
     const rules = await storage.getActiveAutoReplyRules();
+    const cleanPhoneNumber = phoneNumber.replace('+', '');
     
-    for (const rule of rules) {
-      if (this.matchesRule(content, rule)) {
-        return rule.replyMessage;
+    // Get conversation context for this phone number
+    const context = this.conversationContext.get(cleanPhoneNumber) || {};
+    
+    // Sort rules by priority (higher priority first)
+    const sortedRules = rules.sort((a, b) => b.priority - a.priority);
+    
+    for (const rule of sortedRules) {
+      if (await this.matchesRule(content, rule, context, cleanPhoneNumber)) {
+        const reply = await this.processReply(rule, content, context, cleanPhoneNumber);
+        return reply;
       }
     }
     
     return null;
   }
 
-  private matchesRule(content: string, rule: any): boolean {
-    const lowerContent = content.toLowerCase();
+  private async matchesRule(content: string, rule: any, context: any, phoneNumber: string): boolean {
+    const lowerContent = content.toLowerCase().trim();
     const trigger = rule.trigger.toLowerCase();
+    
+    // Check conditions first
+    if (rule.conditions) {
+      const conditions = typeof rule.conditions === 'string' ? JSON.parse(rule.conditions) : rule.conditions;
+      
+      // Time-based conditions
+      if (conditions.timeRange) {
+        const currentHour = new Date().getHours();
+        const startHour = conditions.timeRange.start || 0;
+        const endHour = conditions.timeRange.end || 23;
+        if (currentHour < startHour || currentHour > endHour) {
+          return false;
+        }
+      }
+      
+      // Context-based conditions (for sequential conversations)
+      if (conditions.requiresContext && conditions.contextKey) {
+        if (!context[conditions.contextKey]) {
+          return false;
+        }
+      }
+      
+      // Previous message conditions
+      if (conditions.afterTrigger) {
+        if (!context.lastTriggeredRule || context.lastTriggeredRule !== conditions.afterTrigger) {
+          return false;
+        }
+      }
+      
+      // Contact tag conditions
+      if (conditions.contactTags && conditions.contactTags.length > 0) {
+        const contact = await storage.getContactByPhoneNumber(phoneNumber);
+        if (!contact || !contact.tags) return false;
+        
+        const contactTags = Array.isArray(contact.tags) ? contact.tags : [];
+        const hasRequiredTag = conditions.contactTags.some((tag: string) => contactTags.includes(tag));
+        if (!hasRequiredTag) return false;
+      }
+    }
     
     switch (rule.triggerType) {
       case 'keyword':
         return lowerContent.includes(trigger);
+      
+      case 'exact_match':
+        return lowerContent === trigger;
+      
+      case 'starts_with':
+        return lowerContent.startsWith(trigger);
+      
+      case 'numeric':
+        // Check if content is a number and matches the trigger range
+        const num = parseInt(content.trim());
+        if (isNaN(num)) return false;
+        
+        if (trigger.includes('-')) {
+          const [min, max] = trigger.split('-').map(n => parseInt(n.trim()));
+          return num >= min && num <= max;
+        } else if (trigger.includes(',')) {
+          const validNumbers = trigger.split(',').map(n => parseInt(n.trim()));
+          return validNumbers.includes(num);
+        } else {
+          return num === parseInt(trigger);
+        }
+      
       case 'greeting':
-        return /^(hi|hello|hey|good morning|good evening)/i.test(content);
+        return /^(hi|hello|hey|good morning|good afternoon|good evening|namaste|start|begin)/i.test(content);
+      
+      case 'help':
+        return /^(help|support|assist|menu|options)/i.test(content);
+      
+      case 'regex':
+        try {
+          const regex = new RegExp(trigger, 'i');
+          return regex.test(content);
+        } catch {
+          return false;
+        }
+      
+      case 'contains_any':
+        // Trigger should be comma-separated keywords
+        const keywords = trigger.split(',').map(k => k.trim());
+        return keywords.some(keyword => lowerContent.includes(keyword));
+      
       case 'default':
+        // Default rule only triggers if no other rule matched
+        return !context.hasMatched;
+      
+      case 'fallback':
+        // Fallback for unrecognized inputs
         return true;
+      
       default:
         return false;
     }
+  }
+
+  private async processReply(rule: any, content: string, context: any, phoneNumber: string): Promise<string> {
+    // Update conversation context
+    context.lastTriggeredRule = rule.name;
+    context.lastTrigger = rule.trigger;
+    context.hasMatched = true;
+    context.timestamp = new Date().toISOString();
+    
+    // Handle dynamic content replacement
+    let reply = rule.replyMessage;
+    
+    // Replace dynamic placeholders
+    reply = reply.replace(/\{user_input\}/g, content);
+    reply = reply.replace(/\{phone_number\}/g, phoneNumber);
+    reply = reply.replace(/\{time\}/g, new Date().toLocaleTimeString());
+    reply = reply.replace(/\{date\}/g, new Date().toLocaleDateString());
+    
+    // Handle contact-specific replacements
+    const contact = await storage.getContactByPhoneNumber(phoneNumber);
+    if (contact) {
+      reply = reply.replace(/\{name\}/g, contact.name || 'Customer');
+      reply = reply.replace(/\{email\}/g, contact.email || '');
+    }
+    
+    // Handle conditional content based on rule conditions
+    if (rule.conditions) {
+      const conditions = typeof rule.conditions === 'string' ? JSON.parse(rule.conditions) : rule.conditions;
+      
+      if (conditions.customReply) {
+        // Handle custom reply logic based on conditions
+        if (conditions.customReply.basedOnInput && content.trim().match(/^\d+$/)) {
+          const option = parseInt(content.trim());
+          if (conditions.customReply.options && conditions.customReply.options[option]) {
+            reply = conditions.customReply.options[option];
+          }
+        }
+      }
+      
+      // Set context for next interaction
+      if (conditions.setContext) {
+        Object.keys(conditions.setContext).forEach(key => {
+          context[key] = conditions.setContext[key];
+        });
+      }
+    }
+    
+    // Save context for this phone number
+    this.conversationContext.set(phoneNumber, context);
+    
+    return reply;
+  }
+
+  // Method to create interactive menu-style auto-replies
+  static createInteractiveRule(name: string, trigger: string, menuTitle: string, options: string[], priority: number = 1): any {
+    const optionsText = options.map((option, index) => `${index + 1}. ${option}`).join('\n');
+    const replyMessage = `${menuTitle}\n\n${optionsText}\n\nPlease reply with the number of your choice (1-${options.length}).`;
+    
+    return {
+      name,
+      trigger,
+      triggerType: 'keyword',
+      replyMessage,
+      priority,
+      isActive: true,
+      conditions: {
+        setContext: {
+          waitingForOption: true,
+          validOptions: Array.from({length: options.length}, (_, i) => i + 1),
+          optionMessages: options
+        }
+      }
+    };
+  }
+
+  // Method to create follow-up numeric response rules
+  static createNumericResponseRule(name: string, parentRule: string, options: {[key: number]: string}, priority: number = 2): any {
+    const validNumbers = Object.keys(options).join(',');
+    
+    return {
+      name,
+      trigger: validNumbers,
+      triggerType: 'numeric',
+      replyMessage: 'Processing your selection...',
+      priority,
+      isActive: true,
+      conditions: {
+        afterTrigger: parentRule,
+        customReply: {
+          basedOnInput: true,
+          options
+        }
+      }
+    };
+  }
+
+  // Method to clear conversation context (useful for admin commands)
+  clearContext(phoneNumber: string): boolean {
+    return this.conversationContext.delete(phoneNumber.replace('+', ''));
+  }
+
+  // Method to get conversation context (for debugging)
+  getContext(phoneNumber: string): any {
+    return this.conversationContext.get(phoneNumber.replace('+', ''));
   }
 }
 
@@ -695,6 +893,206 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete auto reply rule" });
+    }
+  });
+
+  // Enhanced Auto-Reply Management APIs
+  app.post('/api/auto-reply-rules/create-interactive', authenticate, async (req, res) => {
+    try {
+      const { name, trigger, menuTitle, options, priority = 1 } = req.body;
+      
+      if (!name || !trigger || !menuTitle || !options || !Array.isArray(options)) {
+        return res.status(400).json({ error: "Missing required fields: name, trigger, menuTitle, options" });
+      }
+      
+      const interactiveRule = AutoReplyService.createInteractiveRule(name, trigger, menuTitle, options, priority);
+      const rule = await storage.createAutoReplyRule(interactiveRule);
+      
+      res.json(rule);
+    } catch (error) {
+      console.error('Create interactive rule error:', error);
+      res.status(500).json({ error: "Failed to create interactive auto reply rule" });
+    }
+  });
+
+  app.post('/api/auto-reply-rules/create-numeric-response', authenticate, async (req, res) => {
+    try {
+      const { name, parentRule, options, priority = 2 } = req.body;
+      
+      if (!name || !parentRule || !options || typeof options !== 'object') {
+        return res.status(400).json({ error: "Missing required fields: name, parentRule, options" });
+      }
+      
+      const numericRule = AutoReplyService.createNumericResponseRule(name, parentRule, options, priority);
+      const rule = await storage.createAutoReplyRule(numericRule);
+      
+      res.json(rule);
+    } catch (error) {
+      console.error('Create numeric response rule error:', error);
+      res.status(500).json({ error: "Failed to create numeric response auto reply rule" });
+    }
+  });
+
+  // Context management for auto-reply conversations
+  app.get('/api/auto-reply-context/:phoneNumber', authenticate, async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      const context = autoReplyService.getContext(phoneNumber);
+      res.json({ context: context || {} });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get conversation context" });
+    }
+  });
+
+  app.delete('/api/auto-reply-context/:phoneNumber', authenticate, async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      const success = autoReplyService.clearContext(phoneNumber);
+      res.json({ success });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear conversation context" });
+    }
+  });
+
+  // Bulk create sample auto-reply rules
+  app.post('/api/auto-reply-rules/create-samples', authenticate, async (req, res) => {
+    try {
+      const sampleRules = [
+        {
+          name: "Welcome Greeting",
+          trigger: "hi,hello,hey,start",
+          triggerType: "contains_any",
+          replyMessage: "🙏 Welcome to our WhatsApp support!\n\nHow can I help you today?\n\n1. 📋 Product Information\n2. 💰 Pricing & Plans\n3. 🎯 Technical Support\n4. 📞 Talk to Human Agent\n\nPlease reply with a number (1-4) to continue.",
+          priority: 10,
+          isActive: true,
+          conditions: JSON.stringify({
+            setContext: {
+              waitingForMainMenu: true,
+              validOptions: [1, 2, 3, 4]
+            }
+          })
+        },
+        {
+          name: "Main Menu Response - Product Info",
+          trigger: "1",
+          triggerType: "numeric",
+          replyMessage: "📋 **Product Information**\n\nOur products include:\n• WhatsApp Business Solutions\n• Marketing Automation Tools\n• Customer Support Platform\n• Analytics & Reporting\n\nWould you like details about any specific product?\n\nType 'menu' to go back to main menu.",
+          priority: 9,
+          isActive: true,
+          conditions: JSON.stringify({
+            afterTrigger: "Welcome Greeting"
+          })
+        },
+        {
+          name: "Main Menu Response - Pricing",
+          trigger: "2",
+          triggerType: "numeric",
+          replyMessage: "💰 **Pricing & Plans**\n\n• Basic Plan: $29/month\n• Professional: $79/month\n• Enterprise: $199/month\n\n✅ All plans include:\n- Unlimited messages\n- 24/7 support\n- Analytics dashboard\n\nType 'demo' for a free demo or 'menu' for main menu.",
+          priority: 9,
+          isActive: true,
+          conditions: JSON.stringify({
+            afterTrigger: "Welcome Greeting"
+          })
+        },
+        {
+          name: "Main Menu Response - Technical Support",
+          trigger: "3",
+          triggerType: "numeric",
+          replyMessage: "🎯 **Technical Support**\n\nI can help you with:\n• Account setup issues\n• Integration problems\n• Feature questions\n• Troubleshooting\n\nPlease describe your technical issue and I'll assist you.\n\nType 'menu' to go back to main menu.",
+          priority: 9,
+          isActive: true,
+          conditions: JSON.stringify({
+            afterTrigger: "Welcome Greeting",
+            setContext: {
+              inTechnicalSupport: true
+            }
+          })
+        },
+        {
+          name: "Main Menu Response - Human Agent",
+          trigger: "4",
+          triggerType: "numeric",
+          replyMessage: "📞 **Connecting to Human Agent**\n\nPlease hold on while I connect you to one of our support representatives.\n\nYour request has been forwarded and someone will be with you shortly.\n\n⏰ Average wait time: 2-5 minutes\n\nType 'menu' if you'd like to try our automated help first.",
+          priority: 9,
+          isActive: true,
+          conditions: JSON.stringify({
+            afterTrigger: "Welcome Greeting",
+            setContext: {
+              requestedHuman: true
+            }
+          })
+        },
+        {
+          name: "Back to Menu",
+          trigger: "menu",
+          triggerType: "exact_match",
+          replyMessage: "🏠 **Main Menu**\n\nHow can I help you today?\n\n1. 📋 Product Information\n2. 💰 Pricing & Plans\n3. 🎯 Technical Support\n4. 📞 Talk to Human Agent\n\nPlease reply with a number (1-4) to continue.",
+          priority: 8,
+          isActive: true,
+          conditions: JSON.stringify({
+            setContext: {
+              waitingForMainMenu: true,
+              validOptions: [1, 2, 3, 4]
+            }
+          })
+        },
+        {
+          name: "Help Command",
+          trigger: "help",
+          triggerType: "help",
+          replyMessage: "ℹ️ **Help & Commands**\n\nAvailable commands:\n• 'hi' or 'hello' - Start conversation\n• 'menu' - Show main menu\n• 'help' - Show this help\n• 'demo' - Request a demo\n• Numbers 1-4 - Select menu options\n\nJust type naturally and I'll do my best to help! 😊",
+          priority: 7,
+          isActive: true
+        },
+        {
+          name: "Demo Request",
+          trigger: "demo",
+          triggerType: "keyword",
+          replyMessage: "🎮 **Free Demo Request**\n\nGreat! I'd be happy to set up a free demo for you.\n\nPlease provide:\n• Your name: {name}\n• Company name\n• Best time to contact\n• Phone number\n\nOr type 'schedule' to book a demo slot directly.",
+          priority: 6,
+          isActive: true,
+          conditions: JSON.stringify({
+            setContext: {
+              requestingDemo: true
+            }
+          })
+        },
+        {
+          name: "Business Hours",
+          trigger: "hours,timing,available,open",
+          triggerType: "contains_any",
+          replyMessage: "🕒 **Business Hours**\n\n• Monday - Friday: 9:00 AM - 6:00 PM\n• Saturday: 10:00 AM - 4:00 PM\n• Sunday: Closed\n\n⏰ Current time: {time}\n📅 Current date: {date}\n\n💬 This chat support is available 24/7 for basic queries!",
+          priority: 5,
+          isActive: true
+        },
+        {
+          name: "Default Fallback",
+          trigger: "*",
+          triggerType: "fallback",
+          replyMessage: "🤔 I didn't quite understand that.\n\nTry typing:\n• 'hi' to start\n• 'menu' for options\n• 'help' for commands\n\nOr just tell me what you need help with! 😊",
+          priority: 1,
+          isActive: true
+        }
+      ];
+
+      const createdRules = [];
+      for (const rule of sampleRules) {
+        try {
+          const createdRule = await storage.createAutoReplyRule(rule);
+          createdRules.push(createdRule);
+        } catch (error) {
+          console.log(`Sample rule '${rule.name}' might already exist, skipping...`);
+        }
+      }
+      
+      res.json({ 
+        message: "Sample auto-reply rules created successfully", 
+        created: createdRules.length,
+        total: sampleRules.length 
+      });
+    } catch (error) {
+      console.error('Create sample rules error:', error);
+      res.status(500).json({ error: "Failed to create sample auto reply rules" });
     }
   });
 
