@@ -1094,19 +1094,76 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     console.log('Request body:', req.body);
     
     try {
-      const { templateId, recipients, parameters = [], campaignName } = req.body;
+      const { 
+        templateId, 
+        recipients, 
+        parameters = [], 
+        campaignName, 
+        recipientType, 
+        selectedGroups, 
+        selectedContacts 
+      } = req.body;
 
       console.log('Bulk message request received:', {
         templateId,
         recipients,
         parameters,
         campaignName,
+        recipientType,
+        selectedGroups,
+        selectedContacts,
         user: req.user?.username || 'unknown'
       });
 
-      if (!templateId || !recipients || !Array.isArray(recipients)) {
-        console.log('Missing required fields in bulk message request');
-        res.status(400).json({ error: 'Missing required fields: templateId, recipients' });
+      if (!templateId) {
+        console.log('Missing templateId in bulk message request');
+        res.status(400).json({ error: 'Missing required field: templateId' });
+        return;
+      }
+
+      // Expand recipients based on recipient type
+      let finalRecipients = recipients || [];
+      
+      if (recipientType === 'groups' && selectedGroups && selectedGroups.length > 0) {
+        console.log('Fetching recipients from groups:', selectedGroups);
+        const groupRecipients = [];
+        
+        for (const groupId of selectedGroups) {
+          try {
+            const groupMembers = await storage.getGroupMembers(groupId);
+            console.log(`Group ${groupId} has ${groupMembers.length} members`);
+            const phoneNumbers = groupMembers.map(member => member.phoneNumber);
+            groupRecipients.push(...phoneNumbers);
+          } catch (error) {
+            console.error(`Failed to fetch members for group ${groupId}:`, error);
+          }
+        }
+        
+        finalRecipients = Array.from(new Set(groupRecipients)); // Remove duplicates
+        console.log(`Expanded ${selectedGroups.length} groups to ${finalRecipients.length} recipients`);
+        
+      } else if (recipientType === 'contacts' && selectedContacts && selectedContacts.length > 0) {
+        console.log('Fetching recipients from contacts:', selectedContacts);
+        const contactRecipients = [];
+        
+        for (const contactId of selectedContacts) {
+          try {
+            const contact = await storage.getContact(contactId);
+            if (contact) {
+              contactRecipients.push(contact.phoneNumber);
+            }
+          } catch (error) {
+            console.error(`Failed to fetch contact ${contactId}:`, error);
+          }
+        }
+        
+        finalRecipients = contactRecipients;
+        console.log(`Selected ${selectedContacts.length} contacts: ${finalRecipients.length} recipients`);
+      }
+
+      if (!finalRecipients || !Array.isArray(finalRecipients) || finalRecipients.length === 0) {
+        console.log('No valid recipients found');
+        res.status(400).json({ error: 'No valid recipients found' });
         return;
       }
 
@@ -1128,8 +1185,8 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
         campaign = await storage.createCampaign({
           name: campaignName || `Campaign ${new Date().toISOString()}`,
           templateId,
-          recipients,
-          totalRecipients: recipients.length,
+          recipients: finalRecipients,
+          totalRecipients: finalRecipients.length,
           status: 'running',
         });
         console.log('Campaign created successfully:', campaign.id);
@@ -1148,9 +1205,12 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
 
       console.log('Starting bulk message sending:', { 
         templateId, 
-        recipientsCount: recipients.length, 
+        recipientsCount: finalRecipients.length, 
         parametersCount: parameters.length,
-        parameters: parameters 
+        parameters: parameters,
+        recipientType,
+        groupsSelected: selectedGroups?.length || 0,
+        contactsSelected: selectedContacts?.length || 0
       });
 
       // Verify WhatsApp credentials before attempting to send
@@ -1180,10 +1240,10 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       // Use the enhanced WhatsApp service to send bulk messages
       console.log('=== STARTING BULK MESSAGE SENDING ===');
       console.log('Template object:', JSON.stringify(template, null, 2));
-      console.log('Recipients array:', recipients);
+      console.log('Final Recipients array:', finalRecipients);
       console.log('Parameters array:', parameters);
       
-      whatsappService.sendBulkTemplateMessages(recipients, template, parameters, campaign.id, (progress) => {
+      whatsappService.sendBulkTemplateMessages(finalRecipients, template, parameters, campaign.id, (progress) => {
         // Broadcast real-time progress updates
         broadcastMessage({
           type: 'campaign_progress',

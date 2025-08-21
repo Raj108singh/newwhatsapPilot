@@ -6,7 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Template } from "@shared/schema";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Template, Group, Contact } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,10 +24,23 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
   const [uploading, setUploading] = useState(false);
   const [campaignName, setCampaignName] = useState<string>("");
   const [parameters, setParameters] = useState<string[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [recipientType, setRecipientType] = useState<"manual" | "groups" | "contacts">("manual");
   const { toast } = useToast();
 
   const { data: templates = [] } = useQuery<Template[]>({
     queryKey: ["/api/templates"],
+    enabled: open,
+  });
+
+  const { data: groups = [] } = useQuery<Group[]>({
+    queryKey: ["/api/groups"],
+    enabled: open,
+  });
+
+  const { data: contacts = [] } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
     enabled: open,
   });
 
@@ -61,6 +77,9 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
     setRecipients("");
     setCampaignName("");
     setParameters([]);
+    setSelectedGroups([]);
+    setSelectedContacts([]);
+    setRecipientType("manual");
   };
 
   // Phone number normalization - handles with/without country codes
@@ -167,27 +186,75 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedTemplateId || !recipients.trim()) {
+    if (!selectedTemplateId) {
       toast({
         title: "Missing Information",
-        description: "Please select a template and provide recipients.",
+        description: "Please select a template.",
         variant: "destructive",
       });
       return;
     }
 
-    const recipientsList = recipients
-      .split("\n")
-      .map(line => normalizePhoneNumber(line.trim()))
-      .filter(line => line.length > 0);
+    let recipientsList: string[] = [];
+
+    // Get recipients based on selected type
+    if (recipientType === "manual") {
+      if (!recipients.trim()) {
+        toast({
+          title: "No Recipients",
+          description: "Please provide phone numbers.",
+          variant: "destructive",
+        });
+        return;
+      }
+      recipientsList = recipients
+        .split("\n")
+        .map(line => normalizePhoneNumber(line.trim()))
+        .filter(line => line.length > 0);
+    } else if (recipientType === "groups") {
+      if (selectedGroups.length === 0) {
+        toast({
+          title: "No Groups Selected",
+          description: "Please select at least one group.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Get phone numbers from selected groups
+      for (const groupId of selectedGroups) {
+        try {
+          const groupMembers = await apiRequest(`/api/groups/${groupId}/members`);
+          const phoneNumbers = groupMembers.map((member: Contact) => member.phoneNumber);
+          recipientsList.push(...phoneNumbers);
+        } catch (error) {
+          console.error(`Failed to fetch members for group ${groupId}:`, error);
+        }
+      }
+    } else if (recipientType === "contacts") {
+      if (selectedContacts.length === 0) {
+        toast({
+          title: "No Contacts Selected",
+          description: "Please select at least one contact.",
+          variant: "destructive",
+        });
+        return;
+      }
+      recipientsList = selectedContacts.map(contactId => {
+        const contact = contacts.find(c => c.id === contactId);
+        return contact?.phoneNumber || "";
+      }).filter(phone => phone.length > 0);
+    }
+
+    // Remove duplicates
+    recipientsList = Array.from(new Set(recipientsList));
 
     if (recipientsList.length === 0) {
       toast({
         title: "No Recipients",
-        description: "Please provide at least one phone number.",
+        description: "No valid recipients found.",
         variant: "destructive",
       });
       return;
@@ -198,6 +265,9 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
       recipients: recipientsList,
       parameters,
       campaignName: campaignName || `Campaign ${new Date().toISOString()}`,
+      recipientType,
+      selectedGroups: recipientType === "groups" ? selectedGroups : undefined,
+      selectedContacts: recipientType === "contacts" ? selectedContacts : undefined,
     });
   };
 
@@ -346,13 +416,20 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
 
           {/* Recipients */}
           <div>
-            <Label htmlFor="recipients">Recipients</Label>
-            <div className="space-y-3">
-              <div className="flex space-x-2">
-                <label htmlFor="csv-upload">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+            <Label>Recipients</Label>
+            <Tabs value={recipientType} onValueChange={(value) => setRecipientType(value as any)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+                <TabsTrigger value="groups">Groups ({groups.length})</TabsTrigger>
+                <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="manual" className="space-y-3">
+                <div className="flex space-x-2">
+                  <label htmlFor="csv-upload">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
                     size="sm"
                     disabled={uploading}
                     data-testid="button-upload-csv"
@@ -371,25 +448,108 @@ export default function BulkMessageModal({ open, onOpenChange }: BulkMessageModa
                   onChange={handleCsvUpload}
                   className="hidden"
                 />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  data-testid="button-select-contacts"
-                >
-                  <i className="fas fa-users mr-2"></i>
-                  Select Contacts
-                </Button>
-              </div>
-              <Textarea
-                id="recipients"
-                value={recipients}
-                onChange={(e) => setRecipients(e.target.value)}
-                placeholder="Enter phone numbers (one per line)&#10;+91XXXXXXXXXX&#10;or XXXXXXXXXX&#10;919876543210"
-                rows={4}
-                data-testid="textarea-recipients"
-              />
-            </div>
+                </div>
+                <Textarea
+                  value={recipients}
+                  onChange={(e) => setRecipients(e.target.value)}
+                  placeholder="Enter phone numbers (one per line)&#10;+91XXXXXXXXXX&#10;or XXXXXXXXXX&#10;919876543210"
+                  rows={4}
+                  data-testid="textarea-recipients"
+                />
+              </TabsContent>
+              
+              <TabsContent value="groups" className="space-y-3">
+                {groups.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <i className="fas fa-users text-4xl mb-2"></i>
+                    <p>No groups available. Create a group first.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {groups.map((group) => (
+                      <div key={group.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-slate-50">
+                        <Checkbox
+                          id={`group-${group.id}`}
+                          checked={selectedGroups.includes(group.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedGroups([...selectedGroups, group.id]);
+                            } else {
+                              setSelectedGroups(selectedGroups.filter(id => id !== group.id));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`group-${group.id}`} className="flex-1 cursor-pointer">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{group.name}</p>
+                              <p className="text-sm text-slate-500">{group.description}</p>
+                            </div>
+                            <Badge variant="secondary">Group</Badge>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedGroups.length > 0 && (
+                  <div className="text-sm text-slate-600">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    {selectedGroups.length} group(s) selected
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="contacts" className="space-y-3">
+                {contacts.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <i className="fas fa-user text-4xl mb-2"></i>
+                    <p>No contacts available. Add contacts first.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {contacts.map((contact) => (
+                      <div key={contact.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-slate-50">
+                        <Checkbox
+                          id={`contact-${contact.id}`}
+                          checked={selectedContacts.includes(contact.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedContacts([...selectedContacts, contact.id]);
+                            } else {
+                              setSelectedContacts(selectedContacts.filter(id => id !== contact.id));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`contact-${contact.id}`} className="flex-1 cursor-pointer">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{contact.name}</p>
+                              <p className="text-sm text-slate-500">{contact.phoneNumber}</p>
+                              {contact.tags && contact.tags.length > 0 && (
+                                <div className="flex gap-1 mt-1">
+                                  {contact.tags.map((tag, idx) => (
+                                    <Badge key={idx} variant="outline" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedContacts.length > 0 && (
+                  <div className="text-sm text-slate-600">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    {selectedContacts.length} contact(s) selected
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Template Preview */}
