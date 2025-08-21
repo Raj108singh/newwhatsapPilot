@@ -5,8 +5,8 @@ import * as schema from "@shared/schema";
 // Check if we have a MySQL database URL or create a default one for development
 let connectionConfig: any;
 
-// Prefer VPS_DATABASE_URL if available, fallback to DATABASE_URL
-const databaseUrl = process.env.VPS_DATABASE_URL || process.env.DATABASE_URL;
+// Prefer MYSQL_DATABASE_URL if available, then VPS_DATABASE_URL, fallback to DATABASE_URL
+const databaseUrl = process.env.MYSQL_DATABASE_URL || process.env.VPS_DATABASE_URL || process.env.DATABASE_URL;
 
 if (databaseUrl && databaseUrl.startsWith('mysql://')) {
   connectionConfig = databaseUrl;
