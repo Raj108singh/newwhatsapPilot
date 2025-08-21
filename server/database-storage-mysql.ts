@@ -627,16 +627,39 @@ export class DatabaseStorage implements IStorage {
   async removeGroupMember(groupId: string, contactId: string): Promise<boolean> {
     console.log('🔗 Database removeGroupMember called with:', groupId, contactId);
     try {
+      // First, list all members in this group to debug
+      const allMembers = await db
+        .select()
+        .from(groupMembers)
+        .where(eq(groupMembers.groupId, groupId));
+      
+      console.log('🔗 All members in group:', allMembers.map(m => ({ id: m.id, groupId: m.groupId, contactId: m.contactId })));
+      
+      // Check if the member exists
+      const existingMember = await db
+        .select()
+        .from(groupMembers)
+        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.contactId, contactId)));
+      
+      console.log('🔗 Existing member check:', existingMember.length, 'found');
+      console.log('🔗 Search criteria - groupId:', groupId, 'contactId:', contactId);
+      
+      if (existingMember.length === 0) {
+        console.log('🔗 Member not found in group');
+        return false;
+      }
+      
       const result = await db
         .delete(groupMembers)
         .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.contactId, contactId)));
       
+      console.log('🔗 Delete result:', result);
       const success = (result as any).affectedRows > 0;
       console.log('🔗 Remove group member success:', success);
       return success;
     } catch (error) {
       console.error('🔗 Database error in removeGroupMember:', error);
-      return true; // Return true to avoid breaking frontend
+      return false; // Return false when there's an error
     }
   }
 
