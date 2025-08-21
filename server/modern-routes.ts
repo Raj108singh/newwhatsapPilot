@@ -42,6 +42,9 @@ class AutoReplyService {
     const rules = await storage.getActiveAutoReplyRules();
     const cleanPhoneNumber = phoneNumber.replace('+', '');
     
+    console.log(`🔍 Processing auto-reply for "${content}" from ${phoneNumber}`);
+    console.log(`📋 Found ${rules.length} active rules:`, rules.map(r => ({ name: r.name, trigger: r.trigger, triggerType: r.triggerType, priority: r.priority, isActive: r.isActive })));
+    
     // Get conversation context for this phone number
     const context = this.conversationContext.get(cleanPhoneNumber) || {};
     
@@ -49,9 +52,13 @@ class AutoReplyService {
     const sortedRules = rules.sort((a, b) => b.priority - a.priority);
     
     for (const rule of sortedRules) {
+      console.log(`🧩 Testing rule: "${rule.name}" (${rule.triggerType}) trigger: "${rule.trigger}"`);
       if (await this.matchesRule(content, rule, context, cleanPhoneNumber)) {
+        console.log(`✅ Rule matched: "${rule.name}"`);
         const reply = await this.processReply(rule, content, context, cleanPhoneNumber);
         return reply;
+      } else {
+        console.log(`❌ Rule "${rule.name}" did not match`);
       }
     }
     
@@ -967,6 +974,7 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
   // Test auto-reply system with sample messages
   app.post('/api/auto-reply-rules/test', async (req, res) => {
     try {
+      console.log('🧪 Starting auto-reply test...');
       const { phoneNumber = '+918318868521', testMessages } = req.body;
       
       const defaultTestMessages = [
@@ -987,8 +995,12 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       const messagesToTest = testMessages || defaultTestMessages;
       const results = [];
       
+      console.log(`🧪 Testing ${messagesToTest.length} messages:`, messagesToTest);
+      
       for (const message of messagesToTest) {
+        console.log(`\n🧪 Testing message: "${message}"`);
         const reply = await autoReplyService.processIncomingMessage(phoneNumber, message);
+        console.log(`🧪 Reply result: "${reply || 'No matching rule found'}"`);
         results.push({
           input: message,
           reply: reply || 'No matching rule found',

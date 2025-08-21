@@ -734,7 +734,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveAutoReplyRules(): Promise<AutoReplyRule[]> {
-    return await db.select().from(autoReplyRules).where(eq(autoReplyRules.isActive, true)).orderBy(desc(autoReplyRules.priority));
+    console.log('🔗 Fetching active auto-reply rules from MySQL database...');
+    const rules = await db.select().from(autoReplyRules).where(eq(autoReplyRules.isActive, true)).orderBy(desc(autoReplyRules.priority));
+    console.log(`🔗 Found ${rules.length} active auto-reply rules:`, rules.map(r => ({ id: r.id, name: r.name, trigger: r.trigger, triggerType: r.triggerType, isActive: r.isActive })));
+    return rules;
   }
 
   async setSetting(setting: InsertSetting): Promise<Setting> {
