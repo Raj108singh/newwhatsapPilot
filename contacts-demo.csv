@@ -1,0 +1,11 @@
+Name,Phone,Email,Tags
+John Doe,+1234567890,john@example.com,customer,vip
+Jane Smith,+1234567891,jane@example.com,lead
+Bob Johnson,+1234567892,bob@example.com,customer
+Alice Brown,+1234567893,,prospect
+Mike Wilson,+1234567894,mike@example.com,vip,customer
+Sara Davis,+1234567895,sara@example.com,lead,prospect
+Tom Anderson,+1234567896,,customer
+Lisa Garcia,+1234567897,lisa@example.com,vip
+Chris Martinez,+1234567898,,lead
+Emma Rodriguez,+1234567899,emma@example.com,customer,active
