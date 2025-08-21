@@ -309,8 +309,15 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await db.select().from(contacts).orderBy(desc(contacts.createdAt));
       console.log('🔗 Database getContacts result:', result.length, 'contacts found');
-      console.log('🔗 First 3 contacts:', result.slice(0, 3));
-      return result;
+      
+      // Parse tags from JSON string to array for frontend
+      const parsedResult = result.map(contact => ({
+        ...contact,
+        tags: contact.tags ? (typeof contact.tags === 'string' ? JSON.parse(contact.tags) : contact.tags) : []
+      }));
+      
+      console.log('🔗 First 3 contacts with parsed tags:', parsedResult.slice(0, 3));
+      return parsedResult;
     } catch (error) {
       console.error('🔗 Database error in getContacts:', error);
       throw error;
@@ -326,7 +333,8 @@ export class DatabaseStorage implements IStorage {
     console.log('🔗 Database createContact called with:', contact);
     const contactWithId = {
       ...contact,
-      id: randomUUID()
+      id: randomUUID(),
+      tags: contact.tags ? JSON.stringify(contact.tags) : null
     };
     console.log('🔗 Inserting contact with ID:', contactWithId);
     
@@ -341,7 +349,14 @@ export class DatabaseStorage implements IStorage {
       if (!newContact) {
         throw new Error('Failed to create contact - not found after insert');
       }
-      return newContact;
+      
+      // Parse tags back to array for return
+      const parsedContact = {
+        ...newContact,
+        tags: newContact.tags ? (typeof newContact.tags === 'string' ? JSON.parse(newContact.tags) : newContact.tags) : []
+      };
+      
+      return parsedContact;
     } catch (error) {
       console.error('🔗 Database error in createContact:', error);
       throw error;
@@ -349,13 +364,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateContact(id: string, contactData: Partial<InsertContact>): Promise<Contact | undefined> {
+    const updateData = {
+      ...contactData,
+      tags: contactData.tags ? JSON.stringify(contactData.tags) : undefined
+    };
+    
     await db
       .update(contacts)
-      .set(contactData)
+      .set(updateData)
       .where(eq(contacts.id, id));
+    
     // Query the updated contact
     const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
-    return contact;
+    
+    if (!contact) return undefined;
+    
+    // Parse tags back to array for return
+    const parsedContact = {
+      ...contact,
+      tags: contact.tags ? (typeof contact.tags === 'string' ? JSON.parse(contact.tags) : contact.tags) : []
+    };
+    
+    return parsedContact;
   }
 
   async deleteContact(id: string): Promise<boolean> {

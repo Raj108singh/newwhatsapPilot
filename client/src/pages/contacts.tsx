@@ -22,6 +22,8 @@ type ContactFormData = z.infer<typeof contactFormSchema>;
 
 export default function Contacts() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -31,6 +33,16 @@ export default function Contacts() {
   });
 
   const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      phoneNumber: "",
+      name: "",
+      email: "",
+      tags: "",
+    },
+  });
+
+  const editForm = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
     defaultValues: {
       phoneNumber: "",
@@ -95,6 +107,60 @@ export default function Contacts() {
 
   const onSubmit = (data: ContactFormData) => {
     createContactMutation.mutate(data);
+  };
+
+  const updateContactMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: ContactFormData }) => {
+      const { tags, ...contactData } = data;
+      const contact = {
+        ...contactData,
+        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+      };
+      const response = await apiRequest(`/api/contacts/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(contact),
+      });
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Contact Updated",
+        description: "The contact has been updated successfully.",
+      });
+      setEditModalOpen(false);
+      setEditingContact(null);
+      editForm.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Update Contact",
+        description: error.message || "An error occurred while updating the contact.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onEditSubmit = (data: ContactFormData) => {
+    if (editingContact) {
+      updateContactMutation.mutate({ id: editingContact.id, data });
+    }
+  };
+
+  const handleEditContact = (contact: Contact) => {
+    setEditingContact(contact);
+    editForm.reset({
+      phoneNumber: contact.phoneNumber,
+      name: contact.name || "",
+      email: contact.email || "",
+      tags: Array.isArray(contact.tags) ? contact.tags.join(', ') : "",
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleSendMessage = (contact: Contact) => {
+    // Navigate to bulk message page with pre-filled phone number
+    window.location.href = `/bulk-message?phone=${contact.phoneNumber}&name=${contact.name || contact.phoneNumber}`;
   };
 
   const importContactsMutation = useMutation({
@@ -379,6 +445,98 @@ export default function Contacts() {
                 </Form>
               </DialogContent>
             </Dialog>
+            
+            {/* Edit Contact Modal */}
+            <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Contact</DialogTitle>
+                </DialogHeader>
+                <Form {...editForm}>
+                  <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                    <FormField
+                      control={editForm.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="+1234567890" data-testid="input-edit-contact-phone" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ""} placeholder="Enter contact name" data-testid="input-edit-contact-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email (Optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ""} type="email" placeholder="contact@example.com" data-testid="input-edit-contact-email" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editForm.control}
+                      name="tags"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tags (Optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="customer, vip, lead (comma separated)" data-testid="input-edit-contact-tags" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end space-x-3 pt-4">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setEditModalOpen(false)}
+                        data-testid="button-cancel-edit-contact"
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={updateContactMutation.isPending}
+                        data-testid="button-update-contact"
+                      >
+                        {updateContactMutation.isPending ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-save mr-2"></i>
+                            Update Contact
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </header>
@@ -443,6 +601,7 @@ export default function Contacts() {
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => handleEditContact(contact)}
                           data-testid={`button-edit-contact-${contact.id}`}
                         >
                           <i className="fas fa-edit mr-2"></i>
@@ -451,6 +610,7 @@ export default function Contacts() {
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => handleSendMessage(contact)}
                           data-testid={`button-message-contact-${contact.id}`}
                         >
                           <i className="fas fa-paper-plane mr-2"></i>

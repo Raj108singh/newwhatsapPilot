@@ -1285,6 +1285,27 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/contacts/:id', authenticate, async (req, res) => {
+    try {
+      console.log('📞 PUT /api/contacts - Contact ID:', req.params.id, 'Data:', req.body);
+      const contactData = insertContactSchema.partial().parse(req.body);
+      const updatedContact = await storage.updateContact(req.params.id, contactData);
+      if (updatedContact) {
+        console.log('📞 PUT /api/contacts - Contact updated successfully');
+        res.json(updatedContact);
+      } else {
+        res.status(404).json({ error: 'Contact not found' });
+      }
+    } catch (error) {
+      console.error('❌ PUT /api/contacts error:', error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Invalid contact data', details: error.errors });
+      } else {
+        res.status(500).json({ error: 'Failed to update contact', message: error.message });
+      }
+    }
+  });
+
   app.delete('/api/contacts/:id', authenticate, async (req, res) => {
     try {
       console.log('📞 DELETE /api/contacts - Contact ID:', req.params.id);
