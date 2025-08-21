@@ -28,6 +28,16 @@ async function authenticate(req: any, res: any, next: any) {
 class AutoReplyService {
   private conversationContext = new Map<string, any>();
 
+  getContext(phoneNumber: string) {
+    const cleanPhoneNumber = phoneNumber.replace('+', '');
+    return this.conversationContext.get(cleanPhoneNumber);
+  }
+
+  clearContext(phoneNumber: string): boolean {
+    const cleanPhoneNumber = phoneNumber.replace('+', '');
+    return this.conversationContext.delete(cleanPhoneNumber);
+  }
+
   async processIncomingMessage(phoneNumber: string, content: string): Promise<string | null> {
     const rules = await storage.getActiveAutoReplyRules();
     const cleanPhoneNumber = phoneNumber.replace('+', '');
@@ -951,6 +961,78 @@ export async function registerModernRoutes(app: Express): Promise<Server> {
       res.json({ success });
     } catch (error) {
       res.status(500).json({ error: "Failed to clear conversation context" });
+    }
+  });
+
+  // Test auto-reply system with sample messages
+  app.post('/api/auto-reply-rules/test', authenticate, async (req, res) => {
+    try {
+      const { phoneNumber = '+918318868521', testMessages } = req.body;
+      
+      const defaultTestMessages = [
+        'Hi', // Should trigger greeting
+        'hello', // Should trigger greeting  
+        '1', // Should trigger option 1 (Product Info)
+        '2', // Should trigger option 2 (Pricing)
+        '3', // Should trigger option 3 (Technical Support)
+        '4', // Should trigger option 4 (Human Agent)
+        'menu', // Should show main menu
+        'help', // Should show help
+        'demo', // Should trigger demo request
+        'hours', // Should show business hours
+        'xyz123', // Should trigger fallback
+        'support' // Should trigger help
+      ];
+      
+      const messagesToTest = testMessages || defaultTestMessages;
+      const results = [];
+      
+      for (const message of messagesToTest) {
+        const reply = await autoReplyService.processIncomingMessage(phoneNumber, message);
+        results.push({
+          input: message,
+          reply: reply || 'No matching rule found',
+          hasReply: !!reply
+        });
+        
+        // Add small delay between tests to simulate real conversation flow
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      res.json({
+        phoneNumber,
+        testResults: results,
+        summary: {
+          totalTests: results.length,
+          repliedTo: results.filter(r => r.hasReply).length,
+          noReply: results.filter(r => !r.hasReply).length
+        }
+      });
+    } catch (error) {
+      console.error('Auto-reply test error:', error);
+      res.status(500).json({ error: "Failed to test auto-reply system" });
+    }
+  });
+
+  // Get current conversation context for testing
+  app.get('/api/auto-reply-rules/test-context/:phoneNumber', authenticate, async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      const context = autoReplyService.getContext(phoneNumber);
+      res.json({ phoneNumber, context: context || {} });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get test context" });
+    }
+  });
+
+  // Clear conversation context for testing
+  app.delete('/api/auto-reply-rules/test-context/:phoneNumber', authenticate, async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      const success = autoReplyService.clearContext(phoneNumber);
+      res.json({ phoneNumber, cleared: success });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear test context" });
     }
   });
 

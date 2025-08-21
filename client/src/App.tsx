@@ -15,6 +15,7 @@ import Groups from "@/pages/groups";
 import Settings from "@/pages/settings";
 import ConversationsPage from "@/pages/conversations";
 import AutoReplyPage from "@/pages/auto-reply";
+import AutoReplyDemo from "@/pages/auto-reply-demo";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
@@ -81,6 +82,7 @@ function AppLayout() {
           <Route path="/bulk-message" component={BulkMessage} />
           <Route path="/conversations" component={ConversationsPage} />
           <Route path="/auto-reply" component={AutoReplyPage} />
+          <Route path="/auto-reply/demo" component={AutoReplyDemo} />
           <Route path="/chat" component={Chat} />
           <Route path="/templates" component={Templates} />
           <Route path="/contacts" component={Contacts} />

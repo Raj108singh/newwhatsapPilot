@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { 
   MessageSquare, Send, Users, Settings, Home, FileText as Template, 
-  BarChart3, Bot, MessageCircle, LogOut, User, Shield 
+  BarChart3, Bot, MessageCircle, LogOut, User, Shield, TestTube 
 } from "lucide-react";
 import { useLogout, useAuthStatus } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ const navigation = [
   { name: "Live Chat", href: "/conversations", icon: MessageCircle },
   { name: "Bulk Messages", href: "/bulk-message", icon: Send },
   { name: "Auto Reply", href: "/auto-reply", icon: Bot },
+  { name: "Test Auto Reply", href: "/auto-reply/demo", icon: TestTube },
   { name: "Templates", href: "/templates", icon: Template },
   { name: "Contacts", href: "/contacts", icon: Users },
   { name: "Groups", href: "/groups", icon: Users },
